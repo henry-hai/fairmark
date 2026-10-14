@@ -1,0 +1,25 @@
+# Secrets. Never commit these.
+.env
+.env.*
+!.env.example
+keys/
+*.pem
+*.key
+
+# Local notes
+HANDOFF.md
+*_project_context.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+
+# Local data
+data/
+.DS_Store
