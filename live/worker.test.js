@@ -441,3 +441,62 @@ test('filters persist and storage failures do not break rendering', async () => 
   fallback.clickFilter('timeline', 'upcoming')
   assert.equal(fallback.getElementById('timeline').innerHTML, '')
 })
+
+test('archived days are served frozen and listed with the current day', async () => {
+  const oldConfig = { ...config, date: '2026-10-16' }
+  const store = kv({ 'config:current': config, days: ['2026-10-16', 'bad'], 'day:2026-10-16': {
+    config: oldConfig, snapshot: { date: '2026-10-16', markets: { [config.legs[0].ticker]: { result: 'yes', fetchedAt: 1 } } }
+  } })
+  const worker = makeWorker('', { now: () => 10 ** 12 })
+  const env = { ACCESS_KEY: 'private', SCHEDULE: store }
+  const archived = await (await worker.fetch(new Request('https://example.com/api/schedule?k=private&d=2026-10-16'), env)).json()
+  assert.equal(archived.archived, true)
+  assert.equal(archived.stale, false)
+  assert.equal(archived.config.date, '2026-10-16')
+  assert.equal(archived.markets[config.legs[0].ticker].result, 'yes')
+  assert.deepEqual(archived.days, ['2026-10-16', '2026-10-17'])
+  const current = await (await worker.fetch(new Request('https://example.com/api/schedule?k=private&d=2026-10-17'), env)).json()
+  assert.equal(current.archived, false)
+  assert.equal((await worker.fetch(new Request('https://example.com/api/schedule?k=private&d=2026-10-01'), env)).status, 404)
+  assert.equal((await worker.fetch(new Request('https://example.com/api/schedule?k=private&d=x'), env)).status, 400)
+})
+
+test('slips show placed and settled times, day tabs and lists', async () => {
+  const legs = ['Won', 'Other', 'Lost'].map((name, index) => ({ name, ticker: `T-${index}`, side: 'yes', start: '2026-10-17T17:00:00Z' }))
+  const slips = [
+    { name: 'won', stake: '10', payout: '20', legs: ['Won', 'Other'], placed: '2026-10-17T13:40:00Z' },
+    { name: 'dead', stake: '10', payout: '20', legs: ['Won', 'Lost'] }
+  ]
+  const markets = {
+    'T-0': { result: 'yes', settlement_ts: '2026-10-18T01:45:00Z' },
+    'T-1': { result: 'yes', close_time: '2026-10-18T03:10:00Z' },
+    'T-2': { result: 'no', settlement_ts: '2026-10-17T20:05:00Z' }
+  }
+  const lists = { ban: ['Team B'], doghouse: ['Azure'], hateWatch: [] }
+  const document = await renderPage({ config: { date: config.date, legs, slips, lists }, markets, stale: false, archived: true, days: ['2026-10-17', '2026-10-18'] })
+  document.clickFilter('slips', 'won')
+  document.clickFilter('slips', 'dead')
+  const rows = document.getElementById('slips').innerHTML
+  assert.match(rows, /id="slip-won".*?Placed Oct 17, 6:40 AM · Settled Oct 17, 8:10 PM/)
+  assert.match(rows, /id="slip-dead".*?Settled Oct 17, 1:05 PM/)
+  assert.doesNotMatch(rows, /id="slip-dead".*?Placed/)
+  assert.match(document.getElementById('days').innerHTML, /data-day="2026-10-17" aria-pressed="true">Sat, Oct 17.*?data-day="2026-10-18" aria-pressed="false">Sun, Oct 18/)
+  assert.equal(document.getElementById('updated').textContent, 'Pacific time. Archived day, final results.')
+  assert.equal(document.getElementById('lists-section').hidden, false)
+  const shown = document.getElementById('lists').innerHTML
+  assert.match(shown, /Ban list.*?Team B.*?The Doghouse.*?Azure/)
+  assert.doesNotMatch(shown, /Hate Watch/)
+})
+
+test('lists come from their own key and fully settled days are never stale', async () => {
+  const settledConfig = { ...config, legs: [config.legs[0]] }
+  const store = kv({ 'config:current': settledConfig, lists: { ban: ['Team B'] }, 'snapshot:current': {
+    date: config.date, markets: { [config.legs[0].ticker]: { result: 'yes', fetchedAt: 1 } } } })
+  const worker = makeWorker('', { now: () => 10 ** 12 })
+  const payload = await (await worker.fetch(new Request('https://example.com/api/schedule?k=private'), { ACCESS_KEY: 'private', SCHEDULE: store })).json()
+  assert.equal(payload.stale, false)
+  assert.deepEqual(payload.lists, { ban: ['Team B'] })
+  const document = await renderPage({ ...payload, config: { ...settledConfig, slips: [] } }, { now: 10 ** 12 })
+  assert.equal(document.getElementById('updated').textContent, 'Pacific time. Every leg has settled.')
+  assert.match(document.getElementById('lists').innerHTML, /Ban list.*?Team B/)
+})

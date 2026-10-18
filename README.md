@@ -28,6 +28,6 @@ The command reads public Kalshi, Pinnacle and Bovada markets. It reports the Kal
 
 ## Live schedule
 
-Add a local `data/slips/YYYY-MM-DD.txt` file with one line per slip. Put a confirmed payout after the stake when known, for example `slip 1 10 18: Team A, Team B`. An optional `.tickers` file alongside it pins a leg to a Kalshi ticker and side. These files and generated `schedule/` pages are ignored by git.
+Add a local `data/slips/YYYY-MM-DD.txt` file with one line per slip. Put a confirmed payout after the stake when known, for example `slip 1 10 18: Team A, Team B`. Add `@6:40a` before the colon to record when the slip was placed (Pacific time). An optional `.tickers` file alongside it pins a leg to a Kalshi ticker and side. An optional `data/lists.json` with `ban`, `doghouse` and `hateWatch` name lists shows those lists on the page. These files and generated `schedule/` pages are ignored by git.
 
-Run `UV_CACHE_DIR=/private/tmp/fairmark-uv-cache uv run python scripts/push_slips.py YYYY-MM-DD` to resolve the legs and upload the schedule to KV. See [live/DEPLOY.md](live/DEPLOY.md) for the initial Cloudflare setup and deploy command. After the first deploy, pushing a new day does not require another deploy.
+Run `UV_CACHE_DIR=/private/tmp/fairmark-uv-cache uv run python scripts/push_slips.py YYYY-MM-DD` to resolve the legs and upload the schedule to KV. See [live/DEPLOY.md](live/DEPLOY.md) for the initial Cloudflare setup and deploy command. After the first deploy, pushing a new day does not require another deploy. Pushing a new day freezes the previous one under its date, and the page shows a tab for every stored day.

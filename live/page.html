@@ -64,6 +64,12 @@
     td { white-space: nowrap; font-variant-numeric: tabular-nums; }
     td .badge { margin-left: 0; }
     .note { margin-top: 10px; font-size: .82rem; }
+    .days { margin: 14px 0 0; }
+    .slip-times { display: block; color: var(--muted); font-size: .78rem; font-weight: 400; margin-top: 4px; }
+    .lists { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .lists .stat ul { margin: 6px 0 0; padding-left: 18px; }
+    .lists .stat small { display: block; color: var(--muted); font-size: .78rem; }
+    @media (max-width: 680px) { .lists { grid-template-columns: 1fr; } }
     @media (max-width: 680px) {
       .profit-tracker { grid-template-columns: 1fr 1fr; }
       .summary { grid-template-columns: 1fr 1fr; }
@@ -83,11 +89,12 @@
 </head>
 <body>
 <main>
-  <header><h1 id="title">Bet Schedule</h1><p class="intro" id="updated">Loading schedule</p></header>
+  <header><h1 id="title">Bet Schedule</h1><p class="intro" id="updated">Loading schedule</p><div class="filters days" id="days" role="group" aria-label="Days"></div></header>
   <section class="profit-tracker" aria-label="Profit tracker" id="profit-tracker"></section>
   <section class="summary" aria-label="Totals" id="summary"></section>
   <section aria-labelledby="timeline-heading"><h2 id="timeline-heading">Timeline</h2><div class="filters" id="timeline-filters" role="group" aria-label="Timeline status filters"></div><ol class="timeline" id="timeline"></ol></section>
   <section aria-labelledby="slips-heading"><h2 id="slips-heading">Slips</h2><div class="filters" id="slip-filters" role="group" aria-label="Slip status filters"></div><table><thead><tr><th scope="col">Slip and legs</th><th scope="col">Stake</th><th scope="col">Max payout</th><th scope="col">Profit</th><th scope="col">Legs hit</th><th scope="col">Status</th></tr></thead><tbody id="slips"></tbody></table><p class="note">Profit is potential for alive slips and settled for won, dead or cashed out slips. Payout totals include only slips with a confirmed payout. Percentages use the midpoint of the Kalshi bid and ask.</p></section>
+  <section aria-labelledby="lists-heading" id="lists-section" hidden><h2 id="lists-heading">Lists</h2><div class="lists" id="lists"></div></section>
 </main>
 <script>
   const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character])
@@ -98,6 +105,11 @@
   const profitClass = value => value === null ? '' : value < 0 ? 'negative' : value > 0 ? 'positive' : ''
   const ridingMoney = value => value % 100 === 0 ? '$' + (value / 100).toLocaleString('en-US') : money(value)
   const pacific = value => new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
+  const stamp = value => new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
+  const dayLabel = value => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(value + 'T12:00:00Z'))
+  const settledAt = market => market?.result ? Date.parse(market.settlement_ts || market.close_time) : NaN
+  const LISTS = [['ban', 'Ban list', 'Never a Yes leg'], ['doghouse', 'The Doghouse', 'Proceed with caution'], ['hateWatch', 'Hate Watch', 'Bet against']]
+  let selectedDay = null
   const badge = (status, label = status) => `<span class="badge ${status}">${label}</span>`
   const localData = /* LOCAL_DATA */ null
   const filterDefaults = { timeline: { live: true, upcoming: true, won: false, dead: false }, slips: { alive: true, won: false, dead: false, cashed: false } }
@@ -143,6 +155,13 @@
     })
   }
 
+  document.getElementById('days').addEventListener('click', event => {
+    const day = event.target.dataset?.day
+    if (!day || day === selectedDay) return
+    selectedDay = day
+    refresh(true)
+  })
+
   function render(data) {
     rememberExpansion()
     lastData = data
@@ -150,11 +169,18 @@
     const startFor = leg => legStatus[leg.name]?.start || leg.start
     const marketAges = config.legs.map(leg => markets[leg.ticker]?.fetchedAt).filter(Number.isFinite).map(fetchedAt => Math.max(0, Math.floor((Date.now() - fetchedAt) / 1000)))
     const oldestAge = marketAges.length ? Math.max(...marketAges) : null
-    const needsRefresh = stale || oldestAge === null || oldestAge > 360
+    const settled = config.legs.every(leg => markets[leg.ticker]?.result)
+    const needsRefresh = !settled && (stale || oldestAge === null || oldestAge > 360)
     document.getElementById('title').textContent = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(config.date + 'T12:00:00Z'))
     const updated = document.getElementById('updated')
-    updated.textContent = `Pacific time. ${oldestAge === null ? 'Waiting for market data' : needsRefresh ? 'Some market data is missing or stale' : 'Market data is current'}.`
-    updated.className = needsRefresh ? 'intro warning' : 'intro'
+    updated.textContent = data.archived ? 'Pacific time. Archived day, final results.' : settled ? 'Pacific time. Every leg has settled.' : `Pacific time. ${oldestAge === null ? 'Waiting for market data' : needsRefresh ? 'Some market data is missing or stale' : 'Market data is current'}.`
+    updated.className = needsRefresh && !data.archived ? 'intro warning' : 'intro'
+    const days = Array.isArray(data.days) ? data.days : []
+    document.getElementById('days').innerHTML = days.length > 1 ? days.map(day => `<button type="button" class="filter-chip" data-day="${escapeHtml(day)}" aria-pressed="${day === config.date}">${escapeHtml(dayLabel(day))}</button>`).join('') : ''
+    const lists = data.lists && Object.keys(data.lists).length ? data.lists : config.lists || {}
+    const shown = LISTS.filter(([key]) => Array.isArray(lists[key]) && lists[key].length)
+    document.getElementById('lists-section').hidden = !shown.length
+    document.getElementById('lists').innerHTML = shown.map(([key, label, note]) => `<div class="stat"><span>${label}</span><small>${note}</small><ul>${lists[key].map(name => `<li>${escapeHtml(name)}</li>`).join('')}</ul></div>`).join('')
     const states = {}
     const nearly = {}
     const probabilities = {}
@@ -237,9 +263,14 @@
       const profit = status === 'dead' || status === 'cashed' ? received - stake : remainingPayout === null ? null : received + remainingPayout - stake
       const profitLabel = profit === null ? 'Not entered' : status === 'alive' ? `Up to ${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}` : `${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}`
       const hit = slip.legs.filter(name => states[name] === 'won').length
+      const legTimes = slip.legs.map(name => settledAt(markets[legsByName[name]?.ticker]))
+      const finished = status === 'won' && legTimes.every(Number.isFinite) ? Math.max(...legTimes) :
+        status === 'dead' ? Math.min(...slip.legs.filter(name => states[name] === 'lost').map(name => settledAt(markets[legsByName[name]?.ticker])).filter(Number.isFinite)) : NaN
+      const times = [slip.placed ? `Placed ${stamp(slip.placed)}` : '', Number.isFinite(finished) ? `Settled ${stamp(finished)}` : ''].filter(Boolean).join(' · ')
+      const timeLabel = times ? `<span class="slip-times">${escapeHtml(times)}</span>` : ''
       const cashoutLabel = cashout ? `<span class="cashout-detail">Cashed out ${money(received)}${fraction ? `, ${(fraction * 100).toFixed(0)}% still riding` : ''}</span>` : ''
-      if (status === 'dead') return `<tr class="dead-slip" id="slip-${encodeURIComponent(slip.name)}"><td colspan="6"><details data-expand-key="slip:${encodeURIComponent(slip.name)}"${expanded.get(`slip:${encodeURIComponent(slip.name)}`) ? ' open' : ''}><summary>#${escapeHtml(slip.name)} ${badge(status)}</summary>${legChips(slip)}<div class="dead-slip-content"><span>Stake ${money(stake)}</span><span>Max payout ${remainingPayout === null ? 'Not entered' : money(remainingPayout)}</span><span>Profit ${profitLabel}</span><span>Legs hit ${hit}/${slip.legs.length}</span>${cashoutLabel}</div></details></td></tr>`
-      return `<tr id="slip-${encodeURIComponent(slip.name)}"><th scope="row" class="slip-id">#${escapeHtml(slip.name)}${legChips(slip)}${cashoutLabel}</th><td data-label="Stake">${money(stake)}</td><td data-label="Max payout">${remainingPayout === null ? 'Not entered' : money(remainingPayout)}</td><td data-label="Profit">${profitLabel}</td><td data-label="Legs hit">${hit}/${slip.legs.length}</td><td data-label="Status">${badge(status, status === 'cashed' ? 'Cashed out' : status)}</td></tr>`
+      if (status === 'dead') return `<tr class="dead-slip" id="slip-${encodeURIComponent(slip.name)}"><td colspan="6"><details data-expand-key="slip:${encodeURIComponent(slip.name)}"${expanded.get(`slip:${encodeURIComponent(slip.name)}`) ? ' open' : ''}><summary>#${escapeHtml(slip.name)} ${badge(status)}</summary>${timeLabel}${legChips(slip)}<div class="dead-slip-content"><span>Stake ${money(stake)}</span><span>Max payout ${remainingPayout === null ? 'Not entered' : money(remainingPayout)}</span><span>Profit ${profitLabel}</span><span>Legs hit ${hit}/${slip.legs.length}</span>${cashoutLabel}</div></details></td></tr>`
+      return `<tr id="slip-${encodeURIComponent(slip.name)}"><th scope="row" class="slip-id">#${escapeHtml(slip.name)}${timeLabel}${legChips(slip)}${cashoutLabel}</th><td data-label="Stake">${money(stake)}</td><td data-label="Max payout">${remainingPayout === null ? 'Not entered' : money(remainingPayout)}</td><td data-label="Profit">${profitLabel}</td><td data-label="Legs hit">${hit}/${slip.legs.length}</td><td data-label="Status">${badge(status, status === 'cashed' ? 'Cashed out' : status)}</td></tr>`
     })
     document.getElementById('summary').innerHTML = [['Staked', totals.staked], ['Payout locked in', totals.locked], ['Max still possible', totals.possible]].map(([label, amount]) => `<div class="stat"><span>${label}</span><strong>${money(amount)}</strong></div>`).join('')
     renderFilters()
@@ -261,10 +292,11 @@
     }).join('')
   }
 
-  async function refresh() {
+  async function refresh(force = false) {
     if (localData) { render(localData); return }
+    if (!force && lastData?.archived) return
     try {
-      const response = await fetch('/api/schedule' + location.search, { cache: 'no-store' })
+      const response = await fetch('/api/schedule' + location.search + (selectedDay ? `&d=${encodeURIComponent(selectedDay)}` : ''), { cache: 'no-store' })
       if (!response.ok) throw new Error(`Schedule unavailable (${response.status})`)
       render(await response.json())
     } catch (error) {
