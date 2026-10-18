@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bet Schedule</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #f5f6fa; --panel: #fff; --text: #182130; --muted: #5b6574; --line: #dce1e8; --accent: #165ab8; --won: #157249; --lost: #b23543; --live: #9b5a0a; --upcoming: #566276; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #10151e; --panel: #1b2330; --text: #eef2f8; --muted: #b0bac7; --line: #344052; --accent: #87b8ff; --won: #6fdaad; --lost: #ff8992; --live: #ffc477; --upcoming: #bcc8d9; } }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { width: min(100%, 940px); margin: auto; padding: 20px 14px 48px; }
+    h1 { font-size: clamp(1.55rem, 5vw, 2.2rem); line-height: 1.15; margin: 0 0 8px; }
+    h2 { font-size: 1.28rem; margin: 32px 0 12px; }
+    p { margin: 0; }
+    .intro, .note { color: var(--muted); }
+    .warning { color: var(--lost); font-weight: 700; }
+    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+    .profit-tracker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+    .profit-tracker .stat { border-color: var(--accent); }
+    .profit-tracker .detail { display: block; margin-top: 3px; color: var(--muted); font-size: .8rem; }
+    .profit-tracker .fee { grid-column: 1 / -1; color: var(--muted); font-size: .82rem; }
+    .positive { color: var(--won); }
+    .negative { color: var(--lost); }
+    .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+    .stat span { display: block; color: var(--muted); font-size: .82rem; }
+    .stat strong { display: block; font-size: clamp(1rem, 3vw, 1.38rem); margin-top: 5px; overflow-wrap: anywhere; }
+    .timeline { list-style: none; margin: 0; padding: 0; }
+    .filters { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 10px; }
+    .filter-chip { border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--muted); padding: 5px 11px; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
+    .filter-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+    .filter-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .timeline-item { display: grid; grid-template-columns: 95px minmax(0, 1fr); gap: 10px; border-bottom: 1px solid var(--line); padding: 12px 2px; }
+    .timeline-item.won-leg { opacity: .55; }
+    .time { font-weight: 700; font-size: .9rem; white-space: nowrap; }
+    .estimate { display: block; font-weight: 400; font-size: .75rem; color: var(--muted); }
+    .leg { min-width: 0; }
+    .leg strong { overflow-wrap: anywhere; }
+    .references { color: var(--muted); font-size: .83rem; margin-top: 3px; }
+    .references a { color: var(--accent); margin-right: 6px; }
+    .badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-size: .75rem; font-weight: 700; text-transform: uppercase; vertical-align: 2px; }
+    .won { color: var(--won); } .lost, .dead { color: var(--lost); } .live { color: var(--live); } .upcoming, .alive, .cashed { color: var(--upcoming); }
+    table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    th, td { text-align: left; padding: 11px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    thead th { color: var(--muted); font-size: .78rem; font-weight: 700; }
+    tbody tr:last-child > * { border-bottom: 0; }
+    .dead-slip summary { cursor: pointer; font-weight: 700; }
+    .dead-slip summary .badge { margin-left: 8px; }
+    .dead-slip-content { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 10px 0 0 20px; font-size: .9rem; }
+    .dead-slip-content span { overflow-wrap: anywhere; }
+    .slip-id { min-width: 150px; }
+    .leg-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; font-weight: 400; }
+    .leg-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 7px; border: 1px solid currentColor; border-radius: 999px; font-size: .75rem; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
+    .leg-chip.won { background: color-mix(in srgb, var(--won) 12%, transparent); }
+    .leg-chip.lost { background: color-mix(in srgb, var(--lost) 12%, transparent); }
+    .leg-chip.live { background: color-mix(in srgb, var(--live) 12%, transparent); }
+    .leg-chip.upcoming { background: color-mix(in srgb, var(--upcoming) 12%, transparent); }
+    .leg-chip .leg-name { color: inherit; }
+    .leg-chip.lost .leg-name { text-decoration: line-through; }
+    .leg-chip.killer { font-weight: 700; }
+    .leg-chip .leg-detail { white-space: nowrap; }
+    .cashout-detail { display: block; color: var(--muted); font-size: .78rem; font-weight: 400; margin-top: 3px; }
+    td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    td .badge { margin-left: 0; }
+    .note { margin-top: 10px; font-size: .82rem; }
+    @media (max-width: 680px) {
+      .profit-tracker { grid-template-columns: 1fr 1fr; }
+      .summary { grid-template-columns: 1fr 1fr; }
+      .summary .stat:last-child { grid-column: 1 / -1; }
+      table, tbody, tr, th, td { display: block; }
+      table { background: none; border: 0; border-radius: 0; }
+      thead { display: none; }
+      tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+      tbody tr.dead-slip { display: block; }
+      .dead-slip td { display: block; }
+      tbody th, tbody td { border: 0; padding: 0; min-width: 0; white-space: normal; }
+      .slip-id { grid-column: 1 / -1; font-size: 1.05rem; }
+      td::before { content: attr(data-label); display: block; color: var(--muted); font-size: .75rem; }
+    }
+    @media (max-width: 380px) { .timeline-item { grid-template-columns: 78px minmax(0, 1fr); gap: 8px; } .time { font-size: .82rem; } .stat { padding: 10px; } .badge { margin-left: 4px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header><h1 id="title">Bet Schedule</h1><p class="intro" id="updated">Loading schedule</p></header>
+  <section class="profit-tracker" aria-label="Profit tracker" id="profit-tracker"></section>
+  <section class="summary" aria-label="Totals" id="summary"></section>
+  <section aria-labelledby="timeline-heading"><h2 id="timeline-heading">Timeline</h2><div class="filters" id="timeline-filters" role="group" aria-label="Timeline status filters"></div><ol class="timeline" id="timeline"></ol></section>
+  <section aria-labelledby="slips-heading"><h2 id="slips-heading">Slips</h2><div class="filters" id="slip-filters" role="group" aria-label="Slip status filters"></div><table><thead><tr><th scope="col">Slip and legs</th><th scope="col">Stake</th><th scope="col">Max payout</th><th scope="col">Profit</th><th scope="col">Legs hit</th><th scope="col">Status</th></tr></thead><tbody id="slips"></tbody></table><p class="note">Profit is potential for alive slips and settled for won, dead or cashed out slips. Payout totals include only slips with a confirmed payout. Percentages use the midpoint of the Kalshi bid and ask.</p></section>
+</main>
+<script>
+  const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character])
+  const cents = value => Math.round(Number(value) * 100)
+  const money = value => '$' + (value / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const signedMoney = value => `${value < 0 ? '-' : '+'}${money(Math.abs(Math.round(value)))}`
+  const profitValue = value => value === null ? 'Not entered' : signedMoney(value)
+  const profitClass = value => value === null ? '' : value < 0 ? 'negative' : value > 0 ? 'positive' : ''
+  const ridingMoney = value => value % 100 === 0 ? '$' + (value / 100).toLocaleString('en-US') : money(value)
+  const pacific = value => new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
+  const badge = (status, label = status) => `<span class="badge ${status}">${label}</span>`
+  const localData = /* LOCAL_DATA */ null
+  const filterDefaults = { timeline: { live: true, upcoming: true, won: false, dead: false }, slips: { alive: true, won: false, dead: false, cashed: false } }
+  const filters = { timeline: { ...filterDefaults.timeline }, slips: { ...filterDefaults.slips } }
+  const expanded = new Map()
+  try {
+    const saved = JSON.parse(localStorage.getItem('fairmark-live-filters'))
+    for (const group of Object.keys(filterDefaults)) {
+      for (const status of Object.keys(filterDefaults[group])) {
+        if (typeof saved?.[group]?.[status] === 'boolean') filters[group][status] = saved[group][status]
+      }
+    }
+  } catch (error) {}
+  try {
+    const saved = JSON.parse(localStorage.getItem('fairmark-live-expanded'))
+    if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+      for (const [key, open] of Object.entries(saved)) if (typeof open === 'boolean') expanded.set(key, open)
+    }
+  } catch (error) {}
+  let lastData
+
+  function rememberExpansion() {
+    for (const detail of document.querySelectorAll('details[data-expand-key]')) expanded.set(detail.dataset.expandKey, detail.open)
+    try { localStorage.setItem('fairmark-live-expanded', JSON.stringify(Object.fromEntries(expanded))) } catch (error) {}
+  }
+  document.addEventListener('toggle', event => {
+    if (event.target.matches?.('details[data-expand-key]')) rememberExpansion()
+  }, true)
+
+  function renderFilters() {
+    for (const [group, elementId] of [['timeline', 'timeline-filters'], ['slips', 'slip-filters']]) {
+      document.getElementById(elementId).innerHTML = Object.entries(filters[group]).map(([status, active]) => `<button type="button" class="filter-chip" data-filter="${status}" aria-pressed="${active}">${status === 'cashed' ? 'Cashed out' : status[0].toUpperCase() + status.slice(1)}</button>`).join('')
+    }
+  }
+
+  for (const [group, elementId] of [['timeline', 'timeline-filters'], ['slips', 'slip-filters']]) {
+    document.getElementById(elementId).addEventListener('click', event => {
+      const status = event.target.dataset?.filter
+      if (!(status in filters[group])) return
+      filters[group][status] = !filters[group][status]
+      try { localStorage.setItem('fairmark-live-filters', JSON.stringify(filters)) } catch (error) {}
+      if (lastData) render(lastData)
+    })
+  }
+
+  function render(data) {
+    rememberExpansion()
+    lastData = data
+    const { config, markets, stale, legStatus = {}, firstPrices = {} } = data
+    const startFor = leg => legStatus[leg.name]?.start || leg.start
+    const marketAges = config.legs.map(leg => markets[leg.ticker]?.fetchedAt).filter(Number.isFinite).map(fetchedAt => Math.max(0, Math.floor((Date.now() - fetchedAt) / 1000)))
+    const oldestAge = marketAges.length ? Math.max(...marketAges) : null
+    const needsRefresh = stale || oldestAge === null || oldestAge > 360
+    document.getElementById('title').textContent = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(config.date + 'T12:00:00Z'))
+    const updated = document.getElementById('updated')
+    updated.textContent = `Pacific time. ${oldestAge === null ? 'Waiting for market data' : needsRefresh ? 'Some market data is missing or stale' : 'Market data is current'}.`
+    updated.className = needsRefresh ? 'intro warning' : 'intro'
+    const states = {}
+    const nearly = {}
+    const probabilities = {}
+    const refs = {}
+    for (const leg of config.legs) {
+      refs[leg.name] = []
+      const market = markets[leg.ticker] || {}
+      const result = String(market.result || '').toLowerCase()
+      const bid = Number(market[`${leg.side}_bid_dollars`])
+      const ask = Number(market[`${leg.side}_ask_dollars`])
+      const quoted = market[`${leg.side}_bid_dollars`] != null && market[`${leg.side}_ask_dollars`] != null && Number.isFinite(bid) && Number.isFinite(ask)
+      const probability = quoted ? Math.max(0, Math.min(1, (bid + ask) / 2)) : null
+      probabilities[leg.name] = probability
+      const firstPrice = firstPrices[leg.name]
+      const priceMoved = probability !== null && typeof firstPrice === 'number' &&
+        Math.abs(Math.round(probability * 10000) - Math.round(firstPrice * 10000)) > 800
+      const state = result === 'yes' || result === 'no' ? (result === leg.side ? 'won' : 'lost') :
+        legStatus[leg.name]?.live === true || Date.now() >= Date.parse(startFor(leg)) || priceMoved ? 'live' : 'upcoming'
+      nearly[leg.name] = state === 'live' && probability !== null ? (probability <= 0.02 ? 'lost' : probability >= 0.98 ? 'won' : null) : null
+      states[leg.name] = nearly[leg.name] || state
+    }
+    const totals = { staked: 0, locked: 0, possible: 0 }
+    const cashouts = config.cashouts || {}
+    const slips = config.slips.map(slip => ({ ...slip, status: cashouts[slip.name] && Number(cashouts[slip.name].remainingFraction) === 0 ? 'cashed' : slip.legs.some(name => states[name] === 'lost') ? 'dead' : slip.legs.every(name => states[name] === 'won') ? 'won' : 'alive' }))
+    const depositFee = config.depositFee == null ? 0 : cents(config.depositFee)
+    const profit = { now: -depositFee, riding: 0, payout: 0, missingFinishedPayout: false, missingRidingPayout: false }
+    for (const slip of slips) {
+      const stake = cents(slip.stake)
+      const payout = slip.payout == null ? null : cents(slip.payout)
+      const cashout = cashouts[slip.name]
+      const received = cashout ? cents(cashout.amount) : 0
+      const fraction = cashout ? Number(cashout.remainingFraction) : 1
+      const remainingStake = Math.round(stake * fraction)
+      const remainingPayout = fraction === 0 ? 0 : payout === null ? null : Math.round(payout * fraction)
+      totals.staked += stake
+      totals.locked += received
+      profit.now += received - (slip.status === 'alive' ? stake - remainingStake : stake)
+      if (slip.status === 'won') {
+        if (remainingPayout === null) profit.missingFinishedPayout = true
+        else {
+          totals.locked += remainingPayout
+          profit.now += remainingPayout
+        }
+      } else if (slip.status === 'alive') {
+        profit.riding += remainingStake
+        if (remainingPayout === null) profit.missingRidingPayout = true
+        else {
+          totals.possible += remainingPayout
+          profit.payout += remainingPayout
+        }
+      }
+      for (const name of new Set(slip.legs)) refs[name].push({ name: slip.name, status: slip.status, stake: remainingStake })
+    }
+    const now = profit.missingFinishedPayout ? null : profit.now
+    const maxProfit = profit.missingFinishedPayout || profit.missingRidingPayout ? null :
+      totals.locked + totals.possible - totals.staked - depositFee
+    const trackerStat = (label, value, missingLabel = 'Not entered') => `<div class="stat"><span>${label}</span><strong class="${profitClass(value)}">${value === null ? missingLabel : profitValue(value)}</strong></div>`
+    document.getElementById('profit-tracker').innerHTML = [
+      trackerStat('Profit now', now),
+      `<div class="stat"><span>Still riding</span><strong>${money(profit.riding)}</strong><small class="detail">Max payout ${profit.missingRidingPayout ? 'Not entered' : money(profit.payout)}</small></div>`,
+      trackerStat('Max profit', maxProfit),
+      ...(config.depositFee == null ? [] : [`<p class="fee">Deposit fee ${money(depositFee)} included in profit.</p>`])
+    ].join('')
+    const slipOrder = { alive: 0, won: 1, dead: 2, cashed: 3 }
+    const nextStart = slip => Math.min(...slip.legs.filter(name => states[name] === 'live' || states[name] === 'upcoming').map(name => Date.parse(startFor(config.legs.find(leg => leg.name === name)))))
+    const legsByName = Object.fromEntries(config.legs.map(leg => [leg.name, leg]))
+    const legChips = slip => `<div class="leg-chips">${slip.legs.map(name => {
+      const state = states[name]
+      const detail = state === 'won' ? '✓' : state === 'lost' ? '✕' : state === 'live' ? probabilities[name] === null ? 'Live' : `${(probabilities[name] * 100).toFixed(1)}%` : pacific(startFor(legsByName[name]))
+      return `<span class="leg-chip ${state}${slip.status === 'dead' && state === 'lost' ? ' killer' : ''}"><span class="leg-name">${escapeHtml(name)}</span><span class="leg-detail">${escapeHtml(detail)}${slip.status === 'dead' && state === 'lost' ? ' · Killed slip' : ''}</span></span>`
+    }).join('')}</div>`
+    const rows = [...slips].filter(slip => filters.slips[slip.status]).sort((a, b) => slipOrder[a.status] - slipOrder[b.status] || (a.status === 'alive' ? nextStart(a) - nextStart(b) : 0) || a.name.localeCompare(b.name, undefined, { numeric: true })).map(slip => {
+      const status = slip.status
+      const stake = cents(slip.stake)
+      const payout = slip.payout == null ? null : cents(slip.payout)
+      const cashout = cashouts[slip.name]
+      const received = cashout ? cents(cashout.amount) : 0
+      const fraction = cashout ? Number(cashout.remainingFraction) : 1
+      const remainingPayout = fraction === 0 ? 0 : payout === null ? null : Math.round(payout * fraction)
+      const profit = status === 'dead' || status === 'cashed' ? received - stake : remainingPayout === null ? null : received + remainingPayout - stake
+      const profitLabel = profit === null ? 'Not entered' : status === 'alive' ? `Up to ${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}` : `${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}`
+      const hit = slip.legs.filter(name => states[name] === 'won').length
+      const cashoutLabel = cashout ? `<span class="cashout-detail">Cashed out ${money(received)}${fraction ? `, ${(fraction * 100).toFixed(0)}% still riding` : ''}</span>` : ''
+      if (status === 'dead') return `<tr class="dead-slip" id="slip-${encodeURIComponent(slip.name)}"><td colspan="6"><details data-expand-key="slip:${encodeURIComponent(slip.name)}"${expanded.get(`slip:${encodeURIComponent(slip.name)}`) ? ' open' : ''}><summary>#${escapeHtml(slip.name)} ${badge(status)}</summary>${legChips(slip)}<div class="dead-slip-content"><span>Stake ${money(stake)}</span><span>Max payout ${remainingPayout === null ? 'Not entered' : money(remainingPayout)}</span><span>Profit ${profitLabel}</span><span>Legs hit ${hit}/${slip.legs.length}</span>${cashoutLabel}</div></details></td></tr>`
+      return `<tr id="slip-${encodeURIComponent(slip.name)}"><th scope="row" class="slip-id">#${escapeHtml(slip.name)}${legChips(slip)}${cashoutLabel}</th><td data-label="Stake">${money(stake)}</td><td data-label="Max payout">${remainingPayout === null ? 'Not entered' : money(remainingPayout)}</td><td data-label="Profit">${profitLabel}</td><td data-label="Legs hit">${hit}/${slip.legs.length}</td><td data-label="Status">${badge(status, status === 'cashed' ? 'Cashed out' : status)}</td></tr>`
+    })
+    document.getElementById('summary').innerHTML = [['Staked', totals.staked], ['Payout locked in', totals.locked], ['Max still possible', totals.possible]].map(([label, amount]) => `<div class="stat"><span>${label}</span><strong>${money(amount)}</strong></div>`).join('')
+    renderFilters()
+    document.getElementById('slips').innerHTML = rows.join('')
+    const timelineStatus = leg => states[leg.name] === 'lost' || (states[leg.name] !== 'won' && !refs[leg.name].some(ref => ref.status === 'alive')) ? 'dead' : states[leg.name]
+    const timelineOrder = { live: 0, upcoming: 1, won: 2, dead: 3 }
+    document.getElementById('timeline').innerHTML = [...config.legs].filter(leg => filters.timeline[timelineStatus(leg)]).sort((a, b) => timelineOrder[timelineStatus(a)] - timelineOrder[timelineStatus(b)] || (timelineStatus(a) === 'won' ? Date.parse(startFor(b)) - Date.parse(startFor(a)) : Date.parse(startFor(a)) - Date.parse(startFor(b))) || a.name.localeCompare(b.name)).map(leg => {
+      const market = markets[leg.ticker] || {}
+      const state = timelineStatus(leg)
+      const probability = probabilities[leg.name]
+      const percentage = nearly[leg.name] ? `${(probability * 100).toFixed(1)}%` : states[leg.name] === 'won' ? '100.0%' : states[leg.name] === 'lost' ? '0.0%' : probability !== null ? `${(probability * 100).toFixed(1)}%` : 'quote unavailable'
+      const age = Number.isFinite(market.fetchedAt) ? Math.max(0, Math.floor((Date.now() - market.fetchedAt) / 1000)) : null
+      const ageLabel = age === null ? 'No market data yet' : `Updated ${age} seconds ago${age > 360 ? ' (stale)' : ''}`
+      const aliveRefs = refs[leg.name].filter(ref => ref.status === 'alive').sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+      const riding = aliveRefs.reduce((total, ref) => total + ref.stake, 0)
+      const links = aliveRefs.map(ref => `<a href="#slip-${encodeURIComponent(ref.name)}">#${escapeHtml(ref.name)}</a>`).join(' ')
+      const displayStatus = nearly[leg.name] || state
+      return `<li class="timeline-item${state === 'won' ? ' won-leg' : ''}"><div class="time">${escapeHtml(pacific(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding. ${ageLabel}${links ? `. Slips ${links}` : ''}</div></div></li>`
+    }).join('')
+  }
+
+  async function refresh() {
+    if (localData) { render(localData); return }
+    try {
+      const response = await fetch('/api/schedule' + location.search, { cache: 'no-store' })
+      if (!response.ok) throw new Error(`Schedule unavailable (${response.status})`)
+      render(await response.json())
+    } catch (error) {
+      document.getElementById('updated').textContent = `${error.message}. Last displayed data may be old.`
+      document.getElementById('updated').className = 'intro warning'
+    }
+  }
+  refresh()
+  setInterval(refresh, 30000)
+  setInterval(() => { if (lastData) render(lastData) }, 1000)
+</script>
+</body>
+</html>

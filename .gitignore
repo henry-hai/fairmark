@@ -22,4 +22,6 @@ node_modules/
 
 # Local data
 data/
+schedule/
+.wrangler/
 .DS_Store

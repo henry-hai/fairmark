@@ -44,7 +44,8 @@ def unique_legs(slips: list[Slip]) -> list[str]:
     return list(names.values())
 
 
-def fetch_quotes(legs: list[str]) -> tuple[dict[str, list[Quote]], list[str]]:
+def fetch_quotes(legs: list[str], include_kalshi: bool = True,
+                 include_coupons: bool = True) -> tuple[dict[str, list[Quote]], list[str]]:
     clients._pinnacle_cache.clear()
     warnings = []
     by_source: dict[str, list[Quote]] = {}
@@ -62,7 +63,7 @@ def fetch_quotes(legs: list[str]) -> tuple[dict[str, list[Quote]], list[str]]:
         except Exception as exc:
             warnings.append(f"Bovada {path}: {exc}")
     events = {event.get("id"): event for event in raw_bovada}
-    for event in list(events.values()):
+    for event in list(events.values()) if include_coupons else []:
         names = tokens(event.get("description", ""))
         names.update(token for competitor in event.get("competitors", []) for token in tokens(competitor.get("name", "")))
         if not any(tokens(leg) & names for leg in legs):
@@ -78,6 +79,9 @@ def fetch_quotes(legs: list[str]) -> tuple[dict[str, list[Quote]], list[str]]:
         except Exception as exc:
             warnings.append(f"Bovada coupon {event.get('description')}: {exc}")
     by_source["Bovada"] = bovada_quotes(list(events.values()))
+    if not include_kalshi:
+        by_source["Kalshi"] = []
+        return by_source, warnings
     sport_names = {
         "BOXI": "boxing", "Boxing": "boxing",
         "MMA": "mma", "Mixed Martial Arts": "mma",
