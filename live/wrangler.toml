@@ -1,0 +1,8 @@
+name = "fairmark-live"
+main = "index.js"
+compatibility_date = "2026-10-17"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "SCHEDULE"
+id = "20cc8c147cd642b98ac0a7da14255d77"
