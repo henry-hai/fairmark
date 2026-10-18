@@ -150,3 +150,48 @@ def test_generated_schedule_contains_cashouts_for_upload(tmp_path, monkeypatch):
     push = importlib.util.module_from_spec(push_spec)
     push_spec.loader.exec_module(push)
     push.validate_schedule(payload)
+
+
+def test_placed_times_read_as_pacific_on_the_slip_day(tmp_path):
+    import pytest
+    slips = tmp_path / '2026-10-18.txt'
+    slips.write_text('slip 1 12 36 @6:40a: Team A\nslip 2 8 @18:05: Team B\nslip 3 6 @10-17-11:50p: Team C\nslip 4 4: Team D\n')
+    parsed = read_slips(slips)
+    assert parsed[0].payout == Decimal('36')
+    assert [slip.placed.isoformat() if slip.placed else None for slip in parsed] == [
+        '2026-10-18T06:40:00-07:00', '2026-10-18T18:05:00-07:00', '2026-10-17T23:50:00-07:00', None]
+    slips.write_text('slip 1 12 @13:40p: Team A\n')
+    with pytest.raises(ValueError, match='placed time'):
+        read_slips(slips)
+
+
+def test_lists_are_optional_and_validated(tmp_path):
+    import pytest
+    assert module.read_lists(tmp_path / 'missing.json') == {}
+    lists = tmp_path / 'lists.json'
+    lists.write_text(json.dumps({'ban': [' Team A '], 'doghouse': ['Team B'], 'hateWatch': []}))
+    assert module.read_lists(lists) == {'ban': ['Team A'], 'doghouse': ['Team B'], 'hateWatch': []}
+    lists.write_text(json.dumps({'friends': ['Someone']}))
+    with pytest.raises(ValueError):
+        module.read_lists(lists)
+
+
+def test_push_archives_the_previous_day_once(tmp_path):
+    push_path = script.with_name('push_slips.py')
+    push_spec = importlib.util.spec_from_file_location('push_slips_script_archive', push_path)
+    push = importlib.util.module_from_spec(push_spec)
+    push_spec.loader.exec_module(push)
+    store = {'config:current': {'date': '2026-10-17', 'legs': []},
+             'snapshot:current': {'date': '2026-10-17', 'markets': {'A': {'result': 'yes'}}},
+             'days': ['2026-10-16']}
+    writes = []
+    put = lambda key, value: (writes.append(key), store.__setitem__(key, value))
+    assert push.archive_previous('2026-10-18', store.get, put) == '2026-10-17'
+    assert store['day:2026-10-17']['snapshot']['markets'] == {'A': {'result': 'yes'}}
+    assert store['days'] == ['2026-10-16', '2026-10-17']
+    assert push.archive_previous('2026-10-17', store.get, put) is None
+    assert writes == ['day:2026-10-17', 'days']
+    store['snapshot:current'] = {'date': '2026-10-16'}
+    store['config:current'] = {'date': '2026-10-15'}
+    push.archive_previous('2026-10-18', store.get, put)
+    assert store['day:2026-10-15']['snapshot'] is None

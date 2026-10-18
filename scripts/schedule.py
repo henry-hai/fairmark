@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from fairmark import clients
 from fairmark.cli import actual_start, fetch_quotes, resolve, sport_family, unique_legs
@@ -19,6 +20,8 @@ from fairmark.matching import best_quote
 
 ROOT = Path(__file__).resolve().parents[1]
 API = clients.KALSHI
+PACIFIC = ZoneInfo('America/Los_Angeles')
+LISTS = ('ban', 'doghouse', 'hateWatch')
 
 
 @dataclass(frozen=True)
@@ -27,6 +30,7 @@ class Slip:
     stake: Decimal
     payout: Decimal | None
     legs: tuple[str, ...]
+    placed: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -43,19 +47,49 @@ def read_slips(path: Path) -> list[Slip]:
         line = raw.strip()
         if not line or line.startswith('#'):
             continue
-        match = re.fullmatch(r'slip\s+(.+?)\s+(\d+(?:\.\d{1,2})?)(?:\s+(\d+(?:\.\d{1,2})?))?\s*:\s*(.+)', line, re.I)
+        match = re.fullmatch(r'slip\s+(.+?)\s+(\d+(?:\.\d{1,2})?)(?:\s+(\d+(?:\.\d{1,2})?))?(?:\s+@(\S+))?\s*:\s*(.+)', line, re.I)
         if not match:
-            raise ValueError(f'Line {line_number}: expected slip NAME STAKE [PAYOUT]: Leg, Leg')
-        name, stake, payout, raw_legs = match.groups()
+            raise ValueError(f'Line {line_number}: expected slip NAME STAKE [PAYOUT] [@TIME]: Leg, Leg')
+        name, stake, payout, placed, raw_legs = match.groups()
         legs = tuple(part.strip() for part in raw_legs.split(','))
         if not all(legs) or len({leg.casefold() for leg in legs}) != len(legs):
             raise ValueError(f'Line {line_number}: legs must be named and unique')
         if Decimal(stake) <= 0 or payout is not None and Decimal(payout) <= 0:
             raise ValueError(f'Line {line_number}: amounts must be positive')
-        slips.append(Slip(name, Decimal(stake), Decimal(payout) if payout else None, legs))
+        slips.append(Slip(name, Decimal(stake), Decimal(payout) if payout else None, legs,
+                          placed_time(placed, path, line_number) if placed else None))
     if not slips or len({slip.name.casefold() for slip in slips}) != len(slips):
         raise ValueError('Slips must be present and uniquely named')
     return slips
+
+
+def placed_time(value: str, path: Path, line_number: int) -> datetime:
+    """Read @6:40a, @18:40 or @10-17 11:50p as Pacific time on the slip file's day."""
+    match = re.fullmatch(r'(?:(\d{1,2})-(\d{1,2})-)?(\d{1,2}):(\d{2})([ap])?m?', value, re.I)
+    try:
+        day = date.fromisoformat(path.stem)
+        month, day_of_month, hour, minute, half = match.groups()
+        hour, minute = int(hour), int(minute)
+        if half:
+            if not 1 <= hour <= 12:
+                raise ValueError
+            hour = hour % 12 + (12 if half.lower() == 'p' else 0)
+        if month:
+            day = day.replace(month=int(month), day=int(day_of_month))
+        return datetime(day.year, day.month, day.day, hour, minute, tzinfo=PACIFIC)
+    except (AttributeError, ValueError):
+        raise ValueError(f'Line {line_number}: placed time must look like @6:40a, @18:40 or @10-17-11:50p') from None
+
+
+def read_lists(path: Path) -> dict[str, list[str]]:
+    if not path.is_file():
+        return {}
+    data = json.loads(path.read_text())
+    if not isinstance(data, dict) or set(data) - set(LISTS) or any(
+            not isinstance(names, list) or not all(isinstance(name, str) and name.strip() for name in names)
+            for names in data.values()):
+        raise ValueError(f'{path} must map {", ".join(LISTS)} to lists of names')
+    return {key: [name.strip() for name in names] for key, names in data.items()}
 
 
 def read_cashouts(path: Path, slips: list[Slip]) -> dict[str, dict]:
@@ -205,7 +239,8 @@ def build(day: date, slips: list[Slip], overrides: dict[str, Override]) -> tuple
         print(message)
     config = {'date': day.isoformat(), 'slips': [
         {'name': s.name, 'stake': str(s.stake), 'payout': str(s.payout) if s.payout is not None else None,
-         'legs': [canonical[leg.casefold()] for leg in s.legs]} for s in slips
+         'legs': [canonical[leg.casefold()] for leg in s.legs],
+         **({'placed': s.placed.astimezone(timezone.utc).isoformat()} if s.placed else {})} for s in slips
     ], 'legs': items}
     return config, pinned_markets
 
@@ -219,6 +254,9 @@ def main() -> None:
     cashouts = read_cashouts(source.with_suffix('.cashouts'), slips)
     config, markets = build(args.date, slips, read_overrides(source.with_suffix('.tickers')))
     config['cashouts'] = cashouts
+    lists = read_lists(ROOT / 'data' / 'lists.json')
+    if lists:
+        config['lists'] = lists
     target = ROOT / 'schedule' / f'{args.date}.json'
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(config, indent=2) + '\n')
