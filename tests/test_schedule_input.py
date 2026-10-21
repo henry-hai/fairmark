@@ -195,3 +195,20 @@ def test_push_archives_the_previous_day_once(tmp_path):
     store['config:current'] = {'date': '2026-10-15'}
     push.archive_previous('2026-10-18', store.get, put)
     assert store['day:2026-10-15']['snapshot'] is None
+
+
+def test_kv_read_failure_stops_the_upload(monkeypatch):
+    import pytest
+    push_path = script.with_name('push_slips.py')
+    push_spec = importlib.util.spec_from_file_location('push_slips_script_kv', push_path)
+    push = importlib.util.module_from_spec(push_spec)
+    push_spec.loader.exec_module(push)
+    result = lambda code, out='', err='': type('Result', (), {'returncode': code, 'stdout': out, 'stderr': err})()
+    monkeypatch.setattr(push, 'wrangler_kv', lambda *args, check=True: result(1, err='fetch failed - 404: Not Found'))
+    assert push.kv_get('days') is None
+    monkeypatch.setattr(push, 'wrangler_kv', lambda *args, check=True: result(1, err='network down'))
+    with pytest.raises(RuntimeError):
+        push.kv_get('config:current')
+    monkeypatch.setattr(push, 'wrangler_kv', lambda *args, check=True: result(0, out='not json'))
+    with pytest.raises(RuntimeError):
+        push.kv_get('config:current')

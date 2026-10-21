@@ -31,13 +31,18 @@ def wrangler_kv(*args: str, check: bool = True) -> subprocess.CompletedProcess:
 
 
 def kv_get(key: str):
+    """Return the stored JSON, None when the key does not exist, and raise on any other failure."""
     result = wrangler_kv('get', key, check=False)
-    if result.returncode != 0 or not result.stdout.strip():
+    if result.returncode != 0:
+        if '404' in result.stderr or '404' in result.stdout:
+            return None
+        raise RuntimeError(f'Could not read {key} from Workers KV, nothing was uploaded')
+    if not result.stdout.strip():
         return None
     try:
         return json.loads(result.stdout)
     except ValueError:
-        return None
+        raise RuntimeError(f'{key} in Workers KV is not valid JSON, nothing was uploaded') from None
 
 
 def kv_put(key: str, value) -> None:

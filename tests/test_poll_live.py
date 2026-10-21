@@ -184,3 +184,12 @@ def test_first_seen_side_price_persists_for_day_and_resets_next_day():
         config['date'] = '2026-10-18'
         poll_live.poll(kv, now=lambda: 700)
     assert http.values['snapshot:current']['firstPrices']['No leg'] == pytest.approx(0.57)
+
+
+def test_pinnacle_match_must_start_near_the_scheduled_leg():
+    leg_start = '2026-10-19T00:20:00+00:00'
+    tonight = {'startTime': '2026-10-19T00:20:00Z', 'participants': []}
+    yesterday = {'startTime': '2026-10-18T00:15:00Z', 'participants': []}
+    assert poll_live.near_start(tonight, leg_start)
+    assert not poll_live.near_start(yesterday, leg_start)
+    assert poll_live.near_start({'participants': []}, leg_start)
