@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6fa">
+  <title>Fairmark | Pricing and risk</title>
+  <style>
+    :root { color-scheme:light; --bg:#f5f6fa; --panel:#fff; --panel2:var(--bg); --line:#dce1e8; --text:#182130; --muted:#5b6574; --accent:#165ab8; --won:#157249; --lost:#b23543; --live:#9b5a0a; --upcoming:#566276; --indicator-positive:var(--won); --indicator-negative:var(--lost); --indicator-highlight:var(--accent); --indicator-glow-positive:none; --indicator-glow-negative:none }
+    @media(prefers-color-scheme:dark) { :root:not([data-theme]) { color-scheme:dark; --bg:#091321; --panel:#112136; --panel2:#172a43; --line:#29405a; --text:#f3f7fa; --muted:#a8bac9; --accent:#76dec8; --won:#76dec8; --lost:#ff9f9f; --live:#f4cc7b; --upcoming:#bcc8d9; --indicator-positive:#5ff5c8; --indicator-negative:#ff7b8a; --indicator-highlight:var(--indicator-positive); --indicator-glow-positive:0 0 8px rgb(95 245 200 / 30%); --indicator-glow-negative:0 0 8px rgb(255 123 138 / 30%) } }
+    :root[data-theme="dark"] { color-scheme:dark; --bg:#091321; --panel:#112136; --panel2:#172a43; --line:#29405a; --text:#f3f7fa; --muted:#a8bac9; --accent:#76dec8; --won:#76dec8; --lost:#ff9f9f; --live:#f4cc7b; --upcoming:#bcc8d9; --indicator-positive:#5ff5c8; --indicator-negative:#ff7b8a; --indicator-highlight:var(--indicator-positive); --indicator-glow-positive:0 0 8px rgb(95 245 200 / 30%); --indicator-glow-negative:0 0 8px rgb(255 123 138 / 30%) }
+    * { box-sizing:border-box }
+    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif }
+    a { color:var(--accent) }
+    .shell { width:min(1160px,100%); margin:auto; padding:0 28px 80px }
+    header { display:flex; justify-content:space-between; align-items:center; min-height:78px; border-bottom:1px solid var(--line) }
+    .brand { font-family:Georgia,serif; font-size:1.45rem; font-weight:600; letter-spacing:-.055em }
+    .header-actions { display:flex; align-items:center; gap:24px }
+    .theme-toggle { border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:99px; padding:6px 12px; font:inherit; font-size:.78rem; cursor:pointer }
+    .theme-toggle:hover { color:var(--text); border-color:var(--muted) }
+    .eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:.16em; font-size:.69rem; font-weight:700 }
+    h1 { font-size:clamp(2.2rem,5vw,3.85rem); line-height:1.1; letter-spacing:-.05em; max-width:770px; margin:17px 0 20px; font-weight:600 }
+    h2 { font-size:1.45rem; letter-spacing:-.03em; margin:0 }
+    p { margin:0 }
+    .hero { padding:70px 0 42px }
+    .lede { max-width:750px; color:var(--muted); font-size:1.05rem }
+    .meta { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:24px; color:var(--muted); font-size:.82rem }
+    .chip { border:1px solid var(--line); border-radius:99px; padding:5px 10px; background:var(--panel2) }
+    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:20px }
+    .metric { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px; min-width:0 }
+    .metric.primary { border-color:var(--accent) }
+    .label { color:var(--muted); font-size:.76rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em }
+    .metric strong { display:block; font-size:clamp(1.38rem,2.5vw,2.14rem); letter-spacing:-.05em; font-variant-numeric:tabular-nums; margin:6px 0 3px }
+    .metric.primary strong { color:var(--indicator-highlight); text-shadow:var(--indicator-glow-positive) }
+    .sub { color:var(--muted); font-size:.78rem }
+    .section-top { display:flex; justify-content:space-between; gap:18px; align-items:end; margin:56px 0 17px }
+    .section-top p { color:var(--muted); font-size:.86rem; max-width:590px }
+    .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:8px; background:var(--panel) }
+    table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums }
+    th { color:var(--muted); text-transform:uppercase; letter-spacing:.07em; font-size:.67rem; font-weight:700; text-align:right; background:var(--panel2) }
+    th:first-child, td:first-child { text-align:left }
+    th,td { padding:15px 17px; border-bottom:1px solid var(--line); white-space:nowrap }
+    tr:last-child td { border-bottom:0 }
+    td { text-align:right; font-size:.91rem }
+    .outcome { font-weight:700; white-space:normal; min-width:220px }
+    .outcome small { display:block; color:var(--muted); font-size:.76rem; font-weight:400; margin-top:3px }
+    .edge { color:var(--indicator-positive); font-weight:700; text-shadow:var(--indicator-glow-positive) }
+    .edge.negative { color:var(--indicator-negative); text-shadow:var(--indicator-glow-negative) }
+    .slips { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px }
+    .slip { border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:22px; min-width:0 }
+    .slip-head { display:flex; justify-content:space-between; align-items:start; gap:12px }
+    .slip h3 { margin:0; font-size:1.14rem }
+    .hit { color:var(--indicator-highlight); font-size:1.55rem; font-weight:700; letter-spacing:-.04em; line-height:1; text-shadow:var(--indicator-glow-positive) }
+    .hit small { display:block; color:var(--muted); font-size:.67rem; font-weight:700; letter-spacing:.04em; text-align:right; text-transform:uppercase; margin-top:4px; text-shadow:none }
+    .leg-list { padding:0; margin:17px 0; list-style:none; border-top:1px solid var(--line) }
+    .leg-list li { display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); font-size:.84rem }
+    .leg-list li span:last-child { color:var(--muted); white-space:nowrap }
+    .slip-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; font-variant-numeric:tabular-nums }
+    .slip-grid strong { display:block; margin-top:2px; font-size:1.05rem }
+    .slip-grid .wide { grid-column:1/-1; border-top:1px solid var(--line); padding-top:11px }
+    .slip-grid .fair { color:var(--muted); font-size:.77rem }
+    .explainer { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:18px }
+    .explainer article { padding:22px; background:var(--panel); border:1px solid var(--line); border-radius:8px }
+    .explainer h3 { margin:0 0 7px; font-size:.98rem }
+    .explainer p { color:var(--muted); font-size:.85rem }
+    footer { border-top:1px solid var(--line); padding-top:22px; margin-top:42px; color:var(--muted); font-size:.78rem }
+    .error { padding:22px; border:1px solid var(--lost); border-radius:8px; color:var(--lost) }
+    @media(max-width:860px) { .metrics { grid-template-columns:repeat(2,1fr) } .slips { grid-template-columns:1fr 1fr } .section-top { display:block } .section-top p { margin-top:6px } }
+    @media(max-width:600px) { .shell { padding:0 16px 48px } header { min-height:64px } .header-actions { gap:12px } .hero { padding-top:42px } .metrics { gap:8px } .metric { padding:13px } .metric strong { font-size:1.4rem } .slips,.explainer { grid-template-columns:1fr } .section-top { margin-top:38px } .table-wrap { border:0; background:none; overflow:visible } table,tbody,tr,td { display:block } thead { display:none } tbody { display:grid; gap:9px } tbody tr { display:grid; grid-template-columns:1fr 1fr; gap:11px; border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:13px } td { text-align:left; padding:0; border:0; white-space:normal } td::before { content:attr(data-label); display:block; color:var(--muted); font-size:.67rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:2px } td.outcome { grid-column:1/-1; min-width:0; padding-bottom:8px; border-bottom:1px solid var(--line) } td.outcome::before { display:none } }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header><div class="brand">Fairmark</div><div class="header-actions"><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light and dark mode">Theme</button></div></header>
+  <main>
+    <section class="hero">
+      <div class="eyebrow">Pricing and risk engine</div>
+      <h1>Find the gap between market price and fair value.</h1>
+      <p class="lede">Open markets on a federally regulated prediction exchange, compared with no-vig sportsbook probabilities. Fees and shared exposure flow into a portfolio risk model.</p>
+      <div class="meta"><span class="chip" id="slate-date">Loading slate</span><span id="updated">Fetching public pricing data</span></div>
+    </section>
+    <div id="content" aria-live="polite"></div>
+  </main>
+  <footer>Fairmark models hypothetical entries. Prices can change. Slip payouts are estimates from leg asks and the standard taker fee formula, not exchange combo quotes. No order is placed.</footer>
+</div>
+<script>
+  const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+  const pct = value => `${(value * 100).toFixed(1)}%`
+  const cents = value => `${(value * 100).toFixed(1)}¢`
+  const money = value => new Intl.NumberFormat('en-US', { style:'currency', currency:'USD' }).format(value)
+  const stamp = value => new Intl.DateTimeFormat('en-US', { timeZone:'America/Los_Angeles', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short' }).format(new Date(value))
+  const day = value => new Intl.DateTimeFormat('en-US', { timeZone:'America/Los_Angeles', weekday:'long', month:'long', day:'numeric', year:'numeric' }).format(new Date(value + 'T12:00:00-07:00'))
+  const legName = leg => {
+    const sport = leg.id.match(/^KX(NCAAF|NFL|UFC|NBA|NHL)/)?.[1]
+    return sport ? `${leg.name} (${sport})` : leg.name
+  }
+  const edge = value => `<span class="edge ${value < 0 ? 'negative' : ''}">${value > 0 ? '+' : ''}${pct(value)}</span>`
+  const content = document.getElementById('content')
+  const themeButton = document.getElementById('theme-toggle')
+  let savedTheme
+  try { savedTheme = localStorage.getItem('fairmark-theme') } catch {}
+  if (savedTheme === 'light' || savedTheme === 'dark') document.documentElement?.setAttribute('data-theme', savedTheme)
+  const currentTheme = () => document.documentElement?.getAttribute('data-theme') || (globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  if (themeButton?.addEventListener) {
+    const updateThemeButton = () => { themeButton.textContent = currentTheme() === 'dark' ? 'Light mode' : 'Dark mode' }
+    updateThemeButton()
+    themeButton.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark'
+      document.documentElement.setAttribute('data-theme', next)
+      try { localStorage.setItem('fairmark-theme', next) } catch {}
+      updateThemeButton()
+    })
+  }
+  const legRow = leg => `<tr><td class="outcome">${escapeHtml(legName(leg))}<small>${escapeHtml(leg.event)} · ${escapeHtml(stamp(leg.start))}</small></td><td data-label="Kalshi ask">${cents(leg.ask)}</td><td data-label="No-vig fair">${pct(leg.fair)}<small style="display:block;color:var(--muted)">${escapeHtml(leg.fairSource)}</small></td><td data-label="Fee">${cents(leg.fee)}</td><td data-label="Under fair">${edge(leg.underFair)}</td></tr>`
+  const slipCard = (slip, legs) => `<article class="slip"><div class="slip-head"><h3>Slip ${slip.number}</h3><div class="hit">${pct(slip.hitChance)}<small>Hit chance</small></div></div><ul class="leg-list">${slip.legIds.map(id => `<li><span>${escapeHtml(legName(legs[id]))}</span><span>[${pct(legs[id].fair)}]</span></li>`).join('')}</ul><div class="slip-grid"><div><span class="label">Stake</span><strong>${money(slip.stake)}</strong></div><div><span class="label">Total payout</span><strong>${money(slip.totalPayout)}</strong></div><div><span class="label">Gain if hit</span><strong>${money(slip.gain)}</strong></div><div><span class="label">Under fair</span><strong>${edge(slip.underFair)}</strong></div><div class="wide fair">Fair total payout ${money(slip.fairPayout)} · Modeled combo fee ${cents(slip.fee)} per contract</div></div></article>`
+  function render(data) {
+    const legs = Object.fromEntries(data.legs.map(leg => [leg.id, leg]))
+    document.getElementById('slate-date').textContent = `${day(data.slateDate)} to ${day(data.slateEndDate)} · Pacific`
+    document.getElementById('updated').textContent = `Prices captured ${stamp(data.asOf)}`
+    content.innerHTML = `<section class="metrics" aria-label="Portfolio risk">
+      <div class="metric primary"><span class="label">Day-profit odds</span><strong>${pct(data.portfolio.dayProfitChance)}</strong><span class="sub">${data.portfolio.trials.toLocaleString('en-US')} Monte Carlo trials</span></div>
+      <div class="metric"><span class="label">Total stake</span><strong>${money(data.portfolio.stake)}</strong><span class="sub">Hypothetical across ${data.slips.length} slips</span></div>
+      <div class="metric"><span class="label">Total payout</span><strong>${money(data.portfolio.allHitPayout)}</strong><span class="sub">${money(data.portfolio.allHitFairPayout)} at fair prices, if all hit</span></div>
+      <div class="metric"><span class="label">Gain if all hit</span><strong>${money(data.portfolio.allHitGain)}</strong><span class="sub">${money(data.portfolio.allHitFairGain)} at fair prices</span></div>
+    </section>
+    <section aria-labelledby="pricing-title"><div class="section-top"><h2 id="pricing-title">Price versus fair</h2><p>Captured Kalshi Yes asks beside Pinnacle no-vig fair. Alternate player thresholds use a distribution fitted to Pinnacle's standard line. Under fair includes the estimated taker fee.</p></div><div class="table-wrap"><table><thead><tr><th scope="col">Market and Pacific start</th><th scope="col">Kalshi ask</th><th scope="col">No-vig fair</th><th scope="col">Fee</th><th scope="col">Under fair</th></tr></thead><tbody>${data.legs.map(legRow).join('')}</tbody></table></div></section>
+    <section aria-labelledby="slips-title"><div class="section-top"><h2 id="slips-title">Modeled slips</h2><p>Brackets show each leg's hit chance. Slip odds multiply independent game probabilities. A shared market is sampled once across the portfolio.</p></div><div class="slips">${data.slips.map(slip => slipCard(slip, legs)).join('')}</div></section>
+    <section id="method" aria-labelledby="method-title"><div class="section-top"><h2 id="method-title">How it works</h2></div><div class="explainer"><article><h3>From odds to fair value</h3><p>Winner probabilities remove the sportsbook margin. For alternate player props, receptions use a Poisson model and yards use a normal model fitted to Pinnacle's standard line. These estimates depend on the model's spread assumption.</p></article><article><h3>From slips to portfolio risk</h3><p>The Python engine samples every unique leg once per trial, settles all slips together, then counts trials where total payout exceeds total stake. Legs from separate games are treated as independent.</p></article></div></section>`
+  }
+  fetch('/api/engine').then(response => { if (!response.ok) throw new Error('Pricing slate unavailable'); return response.json() }).then(render).catch(() => { content.innerHTML = '<p class="error">Pricing is temporarily unavailable. Please try again shortly.</p>' })
+</script>
+</body>
+</html>
