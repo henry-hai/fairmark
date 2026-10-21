@@ -461,6 +461,33 @@ test('archived days are served frozen and listed with the current day', async ()
   assert.equal((await worker.fetch(new Request('https://example.com/api/schedule?k=private&d=x'), env)).status, 400)
 })
 
+test('all-time net includes a cashed-out archive and a day still riding', async () => {
+  const oldDate = '2026-10-16'
+  const oldConfig = { ...config, date: oldDate, depositFee: '1', cashouts: { '1': { amount: '12', remainingFraction: 0 } } }
+  const currentConfig = { ...config, slips: [{ ...config.slips[0], stake: '20', payout: '40' }] }
+  const reads = [], writes = []
+  const values = {
+    'config:current': currentConfig, days: [oldDate],
+    [`day:${oldDate}`]: { config: oldConfig, snapshot: { date: oldDate, markets: {} } },
+    'snapshot:current': { date: config.date, markets: {} }
+  }
+  const env = { ACCESS_KEY: 'private', SCHEDULE: {
+    async get(key) { reads.push(key); return values[key] ?? null },
+    async put(...args) { writes.push(args) }
+  } }
+  const worker = makeWorker('')
+  const current = await (await worker.fetch(new Request('https://example.com/api/schedule?k=private'), env)).json()
+  const document = await renderPage(current)
+  const record = document.getElementById('track-record').innerHTML
+  assert.match(record, /All-time net \+\$1\.00.*2 days tracked/)
+  assert.match(record, /2026-10-16.*\+\$1\.00.*2026-10-17.*\+\$0\.00/)
+  assert.match(document.getElementById('profit-tracker').innerHTML, /Still riding<\/span><strong>\$20\.00/)
+  const archive = await (await worker.fetch(new Request(`https://example.com/api/schedule?k=private&d=${oldDate}`), env)).json()
+  assert.match((await renderPage(archive)).getElementById('track-record').innerHTML, /All-time net \+\$1\.00/)
+  assert.ok(reads.includes(`day:${oldDate}`))
+  assert.deepEqual(writes, [])
+})
+
 test('slips show placed and settled times, day tabs and lists', async () => {
   const legs = ['Won', 'Other', 'Lost'].map((name, index) => ({ name, ticker: `T-${index}`, side: 'yes', start: '2026-10-17T17:00:00Z' }))
   const slips = [

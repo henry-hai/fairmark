@@ -39,16 +39,23 @@ export function makeWorker(page, { now = Date.now } = {}) {
       const shared = { days: [], lists: lists && typeof lists === 'object' && !Array.isArray(lists) ? lists : {} }
       const archivedDays = Array.isArray(days) ? days.filter(day => DAY.test(day)) : []
       shared.days = [...new Set([...archivedDays, ...(current?.date ? [current.date] : [])])].sort()
+      const archivedRecords = await Promise.all(shared.days.filter(day => day !== current?.date).map(async day => ({
+        date: day, record: await env.SCHEDULE.get(`day:${day}`, 'json')
+      })))
+      const [snapshot, failure] = current ? await Promise.all([
+        env.SCHEDULE.get('snapshot:current', 'json'), env.SCHEDULE.get('poll:error', 'json')
+      ]) : [null, null]
+      shared.history = archivedRecords.map(({ date, record }) => record?.config?.date === date
+        ? { date, ...view(record.config, record.snapshot) } : { date, missing: true })
+      if (current?.date) shared.history.push({ date: current.date, ...view(current, snapshot) })
+      shared.history.sort((a, b) => a.date.localeCompare(b.date))
       if (requested && requested !== current?.date) {
-        const archived = await env.SCHEDULE.get(`day:${requested}`, 'json')
+        const archived = archivedRecords.find(item => item.date === requested)?.record
         if (!archived?.config) return json({ error: 'No slips for that day' }, 404)
         return json({ ...view(archived.config, archived.snapshot), stale: false, archived: true, ...shared })
       }
       const config = current
       if (!config) return json({ error: 'No slips uploaded' }, 503)
-      const [snapshot, failure] = await Promise.all([
-        env.SCHEDULE.get('snapshot:current', 'json'), env.SCHEDULE.get('poll:error', 'json')
-      ])
       const result = view(config, snapshot)
       const timestamps = Object.values(result.markets).map(market => market.fetchedAt).filter(Number.isFinite)
       const latest = timestamps.length ? Math.max(...timestamps) : null

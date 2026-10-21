@@ -1,0 +1,7 @@
+name = "fairmark-live"
+pages_build_output_dir = "./public"
+compatibility_date = "2026-10-21"
+
+[[kv_namespaces]]
+binding = "SCHEDULE"
+id = "20cc8c147cd642b98ac0a7da14255d77"

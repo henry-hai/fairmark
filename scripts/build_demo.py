@@ -49,6 +49,7 @@ SLIP_LAYOUT = (
     (25, (TARGETS[4][0], TARGETS[10][0])),
     (100, (TARGETS[0][0], TARGETS[16][0])),
 )
+ARCHIVE_SOURCE = ROOT / 'scripts' / 'demo_archive_sources.json'
 
 
 def fee(price: float) -> float:
@@ -189,6 +190,7 @@ def build_demo(events: list[dict], pinnacle: list[Quote], *, now: datetime,
             continue
         payout = round(stake / entry, 2)
         slip = {'number': number, 'legIds': list(ids), 'stake': stake,
+                'placed': now.astimezone(timezone.utc).isoformat(),
                 'hitChance': fair_product, 'fee': fee(ask_product),
                 'totalPayout': payout, 'gain': round(payout - stake, 2),
                 'fairPayout': round(stake / fair_product, 2),
@@ -200,6 +202,7 @@ def build_demo(events: list[dict], pinnacle: list[Quote], *, now: datetime,
     outcome = simulate(simulated, {leg['id']: leg['fair'] for leg in legs},
                        trials=trials, seed=seed)
     return {'schema': 1, 'asOf': now.astimezone(timezone.utc).isoformat(),
+            'date': '2026-10-22',
             'slateDate': '2026-10-22', 'slateEndDate': '2026-10-24',
             'timeZone': 'America/Los_Angeles', 'legs': legs, 'slips': slips,
             'missingMarkets': missing,
@@ -211,6 +214,92 @@ def build_demo(events: list[dict], pinnacle: list[Quote], *, now: datetime,
                           'dayProfitChance': outcome.any_profit,
                           'medianGain': round(outcome.median, 2),
                           'trials': trials, 'seed': seed}}
+
+
+def build_archived_days(source: dict, *, trials: int = TRIALS, seed: int = SEED) -> dict:
+    """Build hypothetical past slips only from documented final Kalshi markets."""
+    expected = {f'2026-10-{day}' for day in range(15, 20)}
+    if set(source['layout']) != expected:
+        raise ValueError('Archive must contain Oct 15 through Oct 19')
+    records = {}
+    for date, layout in source['layout'].items():
+        if len(layout) != 3:
+            raise ValueError(f'{date} needs three slips')
+        legs_by_id = {}
+        slips = []
+        simulated = []
+        snapshot = {}
+        for number, (stake, ids) in enumerate(layout, 1):
+            if stake not in (25, 50, 75, 100) or len(ids) not in (2, 3) or len(set(ids)) != len(ids):
+                raise ValueError(f'{date} has an invalid slip')
+            starts = []
+            quoted = []
+            for ticker in ids:
+                market = source['markets'][ticker]
+                start = datetime.fromisoformat(market['start'])
+                candle = datetime.fromisoformat(market['candleEnd'])
+                if (market['ticker'] != ticker or market['status'] != 'finalized' or
+                        market['result'] not in ('yes', 'no') or
+                        start.astimezone(PACIFIC).date().isoformat() != date or
+                        candle >= start or not 0.70 <= market['ask'] < 1 or
+                        not 0 <= market['bid'] <= market['ask'] or
+                        market['fairSource'] != 'Kalshi pregame mid' or
+                        not market['settlement_ts'] or
+                        not market['marketSource'].startswith('https://api.elections.kalshi.com/trade-api/v2/markets/') or
+                        not market['priceSource'].startswith('https://api.elections.kalshi.com/trade-api/v2/series/')):
+                    raise ValueError(f'{date} has an unverified market: {ticker}')
+                starts.append(start)
+                quoted.append(candle)
+                fair = (market['bid'] + market['ask']) / 2
+                ask = market['ask']
+                legs_by_id[ticker] = {
+                    'id': ticker, 'name': market['name'], 'event': market['event'],
+                    'start': market['start'], 'priceAt': market['candleEnd'],
+                    'ask': ask, 'fair': fair, 'fee': fee(ask),
+                    'underFair': (fair - ask - fee(ask)) / fair,
+                    'fairSource': market['fairSource']}
+                snapshot[ticker] = {
+                    'result': market['result'], 'settlement_ts': market['settlement_ts'],
+                    'close_time': market['close_time']}
+            if max(quoted) >= min(starts):
+                raise ValueError(f'{date} has a quote after a slip began')
+            selected = [legs_by_id[ticker] for ticker in ids]
+            ask_product = math.prod(leg['ask'] for leg in selected)
+            fair_product = math.prod(leg['fair'] for leg in selected)
+            entry = ask_product + fee(ask_product)
+            payout = round(stake / entry, 2)
+            slips.append({
+                'number': number, 'legIds': ids, 'stake': stake,
+                'hitChance': fair_product, 'fee': fee(ask_product),
+                'totalPayout': payout, 'gain': round(payout - stake, 2),
+                'fairPayout': round(stake / fair_product, 2),
+                'underFair': (fair_product - entry) / fair_product})
+            simulated.append(SimulatedSlip(tuple(ids), stake, payout))
+        legs = sorted(legs_by_id.values(), key=lambda leg: (leg['start'], leg['name']))
+        outcome = simulate(simulated, {leg['id']: leg['fair'] for leg in legs},
+                           trials=trials, seed=seed)
+        config = {
+            'schema': 1, 'date': date,
+            'asOf': max(leg['priceAt'] for leg in legs),
+            'timeZone': 'America/Los_Angeles', 'legs': legs, 'slips': slips,
+            'portfolio': {
+                'stake': sum(slip['stake'] for slip in slips),
+                'allHitPayout': round(sum(slip['totalPayout'] for slip in slips), 2),
+                'allHitGain': round(sum(slip['gain'] for slip in slips), 2),
+                'allHitFairPayout': round(sum(slip['fairPayout'] for slip in slips), 2),
+                'allHitFairGain': round(sum(slip['fairPayout'] - slip['stake'] for slip in slips), 2),
+                'dayProfitChance': outcome.any_profit,
+                'medianGain': round(outcome.median, 2),
+                'trials': trials, 'seed': seed}}
+        records[date] = {'config': config, 'snapshot': {'date': date, 'markets': snapshot}}
+    return {'days': sorted(records, reverse=True), 'records': records}
+
+
+def write_archive_records(output: Path = ROOT / 'schedule' / 'demo-archives.json') -> dict:
+    records = build_archived_days(json.loads(ARCHIVE_SOURCE.read_text()))
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(records, indent=2) + '\n')
+    return records
 
 
 def refresh_demo(kv=None, *, output: Path = ROOT / 'schedule' / 'demo.json',
@@ -232,7 +321,12 @@ def refresh_demo(kv=None, *, output: Path = ROOT / 'schedule' / 'demo.json',
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=ROOT / 'schedule' / 'demo.json')
+    parser.add_argument('--archives-output', type=Path)
     args = parser.parse_args()
+    if args.archives_output:
+        records = write_archive_records(args.archives_output)
+        print(f"Wrote {args.archives_output} with {len(records['days'])} final days")
+        return
     config = refresh_demo(output=args.output)
     print(f"Wrote {args.output} with {len(config['slips'])} slips and {len(config['legs'])} public markets")
     print('Missing markets: ' + ', '.join(config['missingMarkets']))

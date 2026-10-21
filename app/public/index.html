@@ -27,13 +27,17 @@
     .meta { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:24px; color:var(--muted); font-size:.82rem }
     .chip { border:1px solid var(--line); border-radius:99px; padding:5px 10px; background:var(--panel2) }
     .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:20px }
+    .archive-net details { color:var(--muted); font-size:.78rem }
+    .archive-net summary { cursor:pointer }
+    .archive-net ul { list-style:none; margin:7px 0 0; padding:0 }
+    .archive-net li { display:flex; justify-content:space-between; gap:10px }
     .metric { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px; min-width:0 }
     .metric.primary { border-color:var(--accent) }
     .label { color:var(--muted); font-size:.76rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em }
     .metric strong { display:block; font-size:clamp(1.38rem,2.5vw,2.14rem); letter-spacing:-.05em; font-variant-numeric:tabular-nums; margin:6px 0 3px }
     .metric.primary strong { color:var(--indicator-highlight); text-shadow:var(--indicator-glow-positive) }
     .sub { color:var(--muted); font-size:.78rem }
-    .section-top { display:flex; justify-content:space-between; gap:18px; align-items:end; margin:56px 0 17px }
+    .section-top { display:flex; justify-content:space-between; gap:18px; align-items:end; margin:48px 0 17px }
     .section-top p { color:var(--muted); font-size:.86rem; max-width:590px }
     .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:8px; background:var(--panel) }
     table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums }
@@ -67,6 +71,57 @@
     .error { padding:22px; border:1px solid var(--lost); border-radius:8px; color:var(--lost) }
     @media(max-width:860px) { .metrics { grid-template-columns:repeat(2,1fr) } .slips { grid-template-columns:1fr 1fr } .section-top { display:block } .section-top p { margin-top:6px } }
     @media(max-width:600px) { .shell { padding:0 16px 48px } header { min-height:64px } .header-actions { gap:12px } .hero { padding-top:42px } .metrics { gap:8px } .metric { padding:13px } .metric strong { font-size:1.4rem } .slips,.explainer { grid-template-columns:1fr } .section-top { margin-top:38px } .table-wrap { border:0; background:none; overflow:visible } table,tbody,tr,td { display:block } thead { display:none } tbody { display:grid; gap:9px } tbody tr { display:grid; grid-template-columns:1fr 1fr; gap:11px; border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:13px } td { text-align:left; padding:0; border:0; white-space:normal } td::before { content:attr(data-label); display:block; color:var(--muted); font-size:.67rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:2px } td.outcome { grid-column:1/-1; min-width:0; padding-bottom:8px; border-bottom:1px solid var(--line) } td.outcome::before { display:none } }
+
+    :root { --cashed:#9b5a0a }
+    @media(prefers-color-scheme:dark) { :root:not([data-theme]) { --cashed:#f4cc7b } }
+    :root[data-theme="dark"] { --cashed:#f4cc7b }
+    .day-tabs,.filters { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 15px }
+    .day-tabs { margin:0 0 20px }
+    .filter-chip { border:1px solid var(--line); border-radius:99px; padding:6px 11px; background:var(--panel); color:var(--muted); font:inherit; font-size:.8rem; cursor:pointer }
+    .filter-chip[aria-pressed="true"] { color:var(--accent); border-color:var(--accent) }
+    .filter-chip.cashed { color:var(--cashed) }
+    .filter-chip.cashed[aria-pressed="true"] { border-color:var(--cashed) }
+    .metric .positive { color:var(--indicator-positive); text-shadow:var(--indicator-glow-positive) }
+    .metric .negative { color:var(--indicator-negative); text-shadow:var(--indicator-glow-negative) }
+    .timeline { list-style:none; padding:0; margin:0; border:1px solid var(--line); border-radius:8px; background:var(--panel) }
+    .timeline-item { display:grid; grid-template-columns:150px minmax(0,1fr); gap:12px; padding:15px 18px; border-bottom:1px solid var(--line) }
+    .timeline-item:last-child { border:0 }
+    .timeline-item time { font-weight:700 }
+    .leg-jump,.slip-link { border:0; background:none; color:var(--text); font:inherit; font-weight:700; cursor:pointer; padding:0; text-align:left }
+    .leg-jump:hover,.slip-link:hover { color:var(--accent); text-decoration:underline }
+    .slip-link { color:var(--accent); margin-right:5px }
+    .references { display:block; color:var(--muted); margin-top:4px; font-size:.8rem }
+    .badge { display:inline-block; border:1px solid currentColor; border-radius:99px; padding:2px 8px; margin-left:8px; font-size:.69rem; font-weight:700; text-transform:uppercase }
+    .badge.won,.leg-chip.won { color:var(--won) }
+    .badge.dead,.leg-chip.lost { color:var(--lost) }
+    .badge.live,.leg-chip.live { color:var(--live) }
+    .badge.upcoming,.leg-chip.upcoming,.badge.alive { color:var(--upcoming) }
+    .badge.cashed,.cashout-detail { color:var(--cashed) }
+    .slips-table th:first-child { min-width:235px }
+    .slips-table td,.slips-table th { vertical-align:top }
+    .slips-table .slip-id { color:var(--text); text-transform:none; letter-spacing:normal; font-size:.92rem; background:var(--panel) }
+    .slip-times,.cashout-detail { display:block; font-weight:400; margin-top:4px; font-size:.76rem }
+    .slip-times { color:var(--muted) }
+    .leg-chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px }
+    .leg-chip { display:inline-flex; gap:5px; align-items:center; border:1px solid currentColor; border-radius:99px; padding:3px 8px; font-size:.73rem; font-weight:400; max-width:100%; white-space:normal }
+    .leg-chip b { white-space:nowrap }
+    .leg-chip.highlight { outline:3px solid var(--accent); outline-offset:2px; background:var(--panel2) }
+    .source { display:block; color:var(--muted); font-size:.73rem }
+    .pricing-row { cursor:pointer }
+    .pricing-row:hover td { background:var(--panel2) }
+    .pricing-row:focus-visible { outline:2px solid var(--accent); outline-offset:-2px }
+    .pricing-row.selected td { box-shadow:inset 0 1px var(--accent),inset 0 -1px var(--accent); background:var(--panel2) }
+    .pricing-row.selected td:first-child { box-shadow:inset 1px 0 var(--accent),inset 0 1px var(--accent),inset 0 -1px var(--accent) }
+    .pricing-row.selected td:last-child { box-shadow:inset -1px 0 var(--accent),inset 0 1px var(--accent),inset 0 -1px var(--accent) }
+    .pick-dot { display:inline-block; width:8px; height:8px; margin-right:9px; border:1px solid var(--muted); border-radius:50%; vertical-align:1px }
+    .pricing-row.selected .pick-dot { background:var(--accent); border-color:var(--accent) }
+    .checker { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px }
+    .checker strong { display:block; margin-top:5px; font-size:1.2rem }
+    .checker[hidden] { display:none }
+    .empty { padding:20px; color:var(--muted) }
+    @media(max-width:860px) { .checker { grid-template-columns:repeat(3,1fr) } }
+    @media(max-width:600px) { .metrics,.checker { grid-template-columns:repeat(2,minmax(0,1fr)) } .pricing-row.selected { border-color:var(--accent) } .pricing-row.selected td,.pricing-row.selected td:first-child,.pricing-row.selected td:last-child { box-shadow:none } .timeline-item { grid-template-columns:1fr; gap:4px; padding:12px } .timeline-item time { font-size:.78rem } .slips-table th:first-child { min-width:0 } .slips-table tbody th { grid-column:1/-1; padding:0; border:0 } .slips-table tbody td { text-align:left } }
+      .steps { list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px } .steps li { border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px } .steps h3 { margin:0 0 8px; font-size:1rem } .steps p { margin:0; color:var(--muted) } .example { margin:16px 0 0; color:var(--muted) } @media(max-width:600px) { .steps { grid-template-columns:1fr } }
   </style>
 </head>
 <body>
@@ -76,7 +131,7 @@
     <section class="hero">
       <div class="eyebrow">Pricing and risk engine</div>
       <h1>Find the gap between market price and fair value.</h1>
-      <p class="lede">Open markets on a federally regulated prediction exchange, compared with no-vig sportsbook probabilities. Fees and shared exposure flow into a portfolio risk model.</p>
+      <p class="lede">Kalshi prices compared with documented fair references. Fees and shared exposure flow into a portfolio risk model.</p>
       <div class="meta"><span class="chip" id="slate-date">Loading slate</span><span id="updated">Fetching public pricing data</span></div>
     </section>
     <div id="content" aria-live="polite"></div>
@@ -84,17 +139,17 @@
   <footer>Fairmark models hypothetical entries. Prices can change. Slip payouts are estimates from leg asks and the standard taker fee formula, not exchange combo quotes. No order is placed.</footer>
 </div>
 <script>
-  const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+  const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
   const pct = value => `${(value * 100).toFixed(1)}%`
   const cents = value => `${(value * 100).toFixed(1)}¢`
   const money = value => new Intl.NumberFormat('en-US', { style:'currency', currency:'USD' }).format(value)
-  const stamp = value => new Intl.DateTimeFormat('en-US', { timeZone:'America/Los_Angeles', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short' }).format(new Date(value))
-  const day = value => new Intl.DateTimeFormat('en-US', { timeZone:'America/Los_Angeles', weekday:'long', month:'long', day:'numeric', year:'numeric' }).format(new Date(value + 'T12:00:00-07:00'))
-  const legName = leg => {
-    const sport = leg.id.match(/^KX(NCAAF|NFL|UFC|NBA|NHL)/)?.[1]
-    return sport ? `${leg.name} (${sport})` : leg.name
-  }
+  const signed = value => `${value >= 0 ? '+' : '−'}${money(Math.abs(value))}`
+  const stamp = value => value ? new Intl.DateTimeFormat('en-US', { timeZone:'America/Los_Angeles', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short' }).format(new Date(value)) : ''
+  const hour = value => new Intl.DateTimeFormat('en-US', { timeZone:'America/Los_Angeles', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }).format(new Date(value))
+  const day = value => new Intl.DateTimeFormat('en-US', { timeZone:'UTC', weekday:'short', month:'short', day:'numeric' }).format(new Date(`${value}T12:00:00Z`))
+  const legName = leg => { const sport = leg.id.match(/^KX(NCAAF|NFL|UFC|NBA|NHL|CS2)/)?.[1]; return sport ? `${leg.name} (${sport})` : leg.name }
   const edge = value => `<span class="edge ${value < 0 ? 'negative' : ''}">${value > 0 ? '+' : ''}${pct(value)}</span>`
+  const badge = (status, label = status) => `<span class="badge ${status}">${label}</span>`
   const content = document.getElementById('content')
   const themeButton = document.getElementById('theme-toggle')
   let savedTheme
@@ -111,23 +166,201 @@
       updateThemeButton()
     })
   }
-  const legRow = leg => `<tr><td class="outcome">${escapeHtml(legName(leg))}<small>${escapeHtml(leg.event)} · ${escapeHtml(stamp(leg.start))}</small></td><td data-label="Kalshi ask">${cents(leg.ask)}</td><td data-label="No-vig fair">${pct(leg.fair)}<small style="display:block;color:var(--muted)">${escapeHtml(leg.fairSource)}</small></td><td data-label="Fee">${cents(leg.fee)}</td><td data-label="Under fair">${edge(leg.underFair)}</td></tr>`
-  const slipCard = (slip, legs) => `<article class="slip"><div class="slip-head"><h3>Slip ${slip.number}</h3><div class="hit">${pct(slip.hitChance)}<small>Hit chance</small></div></div><ul class="leg-list">${slip.legIds.map(id => `<li><span>${escapeHtml(legName(legs[id]))}</span><span>[${pct(legs[id].fair)}]</span></li>`).join('')}</ul><div class="slip-grid"><div><span class="label">Stake</span><strong>${money(slip.stake)}</strong></div><div><span class="label">Total payout</span><strong>${money(slip.totalPayout)}</strong></div><div><span class="label">Gain if hit</span><strong>${money(slip.gain)}</strong></div><div><span class="label">Under fair</span><strong>${edge(slip.underFair)}</strong></div><div class="wide fair">Fair total payout ${money(slip.fairPayout)} · Modeled combo fee ${cents(slip.fee)} per contract</div></div></article>`
-  function render(data) {
-    const legs = Object.fromEntries(data.legs.map(leg => [leg.id, leg]))
-    document.getElementById('slate-date').textContent = `${day(data.slateDate)} to ${day(data.slateEndDate)} · Pacific`
-    document.getElementById('updated').textContent = `Prices captured ${stamp(data.asOf)}`
-    content.innerHTML = `<section class="metrics" aria-label="Portfolio risk">
-      <div class="metric primary"><span class="label">Day-profit odds</span><strong>${pct(data.portfolio.dayProfitChance)}</strong><span class="sub">${data.portfolio.trials.toLocaleString('en-US')} Monte Carlo trials</span></div>
-      <div class="metric"><span class="label">Total stake</span><strong>${money(data.portfolio.stake)}</strong><span class="sub">Hypothetical across ${data.slips.length} slips</span></div>
-      <div class="metric"><span class="label">Total payout</span><strong>${money(data.portfolio.allHitPayout)}</strong><span class="sub">${money(data.portfolio.allHitFairPayout)} at fair prices, if all hit</span></div>
-      <div class="metric"><span class="label">Gain if all hit</span><strong>${money(data.portfolio.allHitGain)}</strong><span class="sub">${money(data.portfolio.allHitFairGain)} at fair prices</span></div>
-    </section>
-    <section aria-labelledby="pricing-title"><div class="section-top"><h2 id="pricing-title">Price versus fair</h2><p>Captured Kalshi Yes asks beside Pinnacle no-vig fair. Alternate player thresholds use a distribution fitted to Pinnacle's standard line. Under fair includes the estimated taker fee.</p></div><div class="table-wrap"><table><thead><tr><th scope="col">Market and Pacific start</th><th scope="col">Kalshi ask</th><th scope="col">No-vig fair</th><th scope="col">Fee</th><th scope="col">Under fair</th></tr></thead><tbody>${data.legs.map(legRow).join('')}</tbody></table></div></section>
-    <section aria-labelledby="slips-title"><div class="section-top"><h2 id="slips-title">Modeled slips</h2><p>Brackets show each leg's hit chance. Slip odds multiply independent game probabilities. A shared market is sampled once across the portfolio.</p></div><div class="slips">${data.slips.map(slip => slipCard(slip, legs)).join('')}</div></section>
-    <section id="method" aria-labelledby="method-title"><div class="section-top"><h2 id="method-title">How it works</h2></div><div class="explainer"><article><h3>From odds to fair value</h3><p>Winner probabilities remove the sportsbook margin. For alternate player props, receptions use a Poisson model and yards use a normal model fitted to Pinnacle's standard line. These estimates depend on the model's spread assumption.</p></article><article><h3>From slips to portfolio risk</h3><p>The Python engine samples every unique leg once per trial, settles all slips together, then counts trials where total payout exceeds total stake. Legs from separate games are treated as independent.</p></article></div></section>`
+  const defaults = { timeline: { live:true, upcoming:true, won:false, dead:false }, slips: { alive:true, won:false, dead:false, cashed:false } }
+  const filters = { timeline: { ...defaults.timeline }, slips: { ...defaults.slips } }
+  try {
+    const saved = JSON.parse(localStorage.getItem('fairmark-demo-filters'))
+    for (const group of Object.keys(filters)) for (const status of Object.keys(filters[group]))
+      if (typeof saved?.[group]?.[status] === 'boolean') filters[group][status] = saved[group][status]
+  } catch {}
+  const selected = new Set()
+  let selectedDay = globalThis.location?.search.match(/[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/)?.[1] || null
+  let lastData = null
+  let displayedDay = null
+  const saveFilters = () => { try { localStorage.setItem('fairmark-demo-filters', JSON.stringify(filters)) } catch {} }
+  const priceRow = leg => `<tr class="pricing-row ${selected.has(leg.id) ? 'selected' : ''}" ><td class="outcome">${escapeHtml(legName(leg))}<small>${escapeHtml(leg.event)} · ${escapeHtml(stamp(leg.start))}</small></td><td data-label="Kalshi ask">${cents(leg.ask)}</td><td data-label="Fair reference">${pct(leg.fair)}<small class="source">${escapeHtml(leg.fairSource)}${leg.priceAt ? ` · ${escapeHtml(stamp(leg.priceAt))}` : ''}</small></td><td data-label="Fee">${cents(leg.fee)}</td><td data-label="Under fair">${edge(leg.underFair)}</td></tr>`
+  const filterButtons = (group, archived = false) => Object.entries(filters[group]).filter(([status]) =>
+    !archived || status === 'won' || status === 'dead').map(([status, active]) => `<button type="button" class="filter-chip ${status}" data-group="${group}" data-filter="${status}" aria-pressed="${active}">${status === 'cashed' ? 'Cashed out' : status[0].toUpperCase() + status.slice(1)}</button>`).join('')
+  function renderChecker(data) {
+    const legs = data.legs.filter(leg => selected.has(leg.id))
+    const target = document.getElementById('checker-result')
+    if (!target) return
+    target.hidden = !legs.length
+    if (!legs.length) { target.innerHTML = ''; return }
+    const fair = legs.reduce((value, leg) => value * leg.fair, 1)
+    const ask = legs.reduce((value, leg) => value * leg.ask, 1)
+    const fee = Math.ceil(0.07 * ask * (1 - ask) * 10000 - 1e-12) / 10000
+    const entry = ask + fee
+    target.innerHTML = `<div><span class="label">Combined hit</span><strong class="edge">${pct(fair)}</strong></div><div><span class="label">Kalshi payout</span><strong>${money(100 / entry)}</strong></div><div><span class="label">Fair payout</span><strong>${money(100 / fair)}</strong></div><div><span class="label">Combo fee</span><strong>${cents(fee)}</strong></div><div><span class="label">Under fair</span><strong>${edge((fair - entry) / fair)}</strong></div>`
   }
-  fetch('/api/engine').then(response => { if (!response.ok) throw new Error('Pricing slate unavailable'); return response.json() }).then(render).catch(() => { content.innerHTML = '<p class="error">Pricing is temporarily unavailable. Please try again shortly.</p>' })
+  function dailyNet(data) {
+    if (data.missing) return null
+    const state = {}
+    for (const leg of data.legs) {
+      const market = data.markets?.[leg.id] || {}
+      const result = String(market.result || '').toLowerCase()
+      const bid = Number(market.yes_bid_dollars), ask = Number(market.yes_ask_dollars)
+      const quoted = market.yes_bid_dollars != null && market.yes_ask_dollars != null && Number.isFinite(bid) && Number.isFinite(ask)
+      const mid = quoted ? Math.max(0, Math.min(1, (bid + ask) / 2)) : null
+      state[leg.id] = result === 'yes' ? 'won' : result === 'no' ? 'lost' : Date.now() >= Date.parse(leg.start) ? 'live' : 'upcoming'
+    }
+    let net = 0
+    for (const slip of data.slips) {
+      const fraction = slip.cashout ? Number(slip.cashout.remainingFraction) : 1
+      const status = slip.cashout && fraction === 0 ? 'cashed' : slip.legIds.some(id => state[id] === 'lost') ? 'dead' : slip.legIds.every(id => state[id] === 'won') ? 'won' : 'alive'
+      net += (slip.cashout?.amount || 0) - (status === 'alive' ? slip.stake - slip.stake * fraction : slip.stake)
+      if (status === 'won') net += slip.totalPayout * fraction
+    }
+    return Math.round(net * 100)
+  }
+  function howItWorks(data) {
+    const best = [...data.legs].filter(leg => Number.isFinite(leg.underFair)).sort((a,b) => b.underFair - a.underFair)[0]
+    const example = best ? `<p class="example">Example: ${escapeHtml(legName(best))}. Kalshi asks ${cents(best.ask)}, fair is ${pct(best.fair)}, so after the fee it is ${edge(best.underFair)} under fair.</p>` : ''
+    return `<ol class="steps"><li><h3>1. Remove the bookmaker's margin</h3><p>Pinnacle's odds on every outcome are scaled to add up to 100%. What is left is the fair chance. Props without a quoted line are estimated from Pinnacle's main line and labeled.</p></li><li><h3>2. Compare with the exchange</h3><p>Each Kalshi ask, plus its fee, is checked against that fair chance. A leg priced under fair is a steal.</p></li><li><h3>3. Price the whole day</h3><p>The Python engine plays every slip together 100,000 times, counting each shared leg once, and reports the chance the day ends in profit.</p></li></ol>${example}`
+  }
+  function trackRecord(data) {
+    const days = Array.isArray(data.history) ? data.history : [data]
+    const complete = days.filter(item => !item.missing && item.slips.every(slip =>
+      Number(slip.cashout?.remainingFraction) === 0 || slip.legIds.every(id =>
+        ['yes','no'].includes(String(item.markets?.[id]?.result).toLowerCase()))))
+    const nets = complete.map(item => ({ date:item.date, net:dailyNet(item) }))
+    const total = nets.reduce((sum, item) => sum + item.net, 0)
+    return `<div class="metric archive-net"><span class="label">Net profit, all days</span><strong class="${total < 0 ? 'negative' : 'positive'}">${signed(total / 100)}</strong><details><summary>${nets.length} finalized ${nets.length === 1 ? 'day' : 'days'}</summary><ul>${nets.map(item => `<li><span>${escapeHtml(item.date)}</span><span>${signed(item.net / 100)}</span></li>`).join('')}</ul></details></div>`
+  }
+  function render(data) {
+    if (data.archived && displayedDay !== data.date) {
+      filters.timeline.won = filters.timeline.dead = true
+      filters.slips.won = filters.slips.dead = true
+    }
+    displayedDay = data.date
+    const used = new Set(data.slips.flatMap(slip => slip.legIds))
+    data = { ...data, legs: data.legs.filter(leg => used.has(leg.id)) }
+    lastData = data
+    const legs = Object.fromEntries(data.legs.map(leg => [leg.id, leg]))
+    for (const id of selected) if (!used.has(id)) selected.delete(id)
+    document.getElementById('slate-date').textContent = `${day(data.date)} · ${data.archived ? 'Final results' : 'Modeled slate'}`
+    document.getElementById('updated').textContent = data.archived ? 'Archived demo day · Pacific time' : `Prices captured ${stamp(data.asOf)} · Pacific time`
+    const now = Date.now()
+    const state = {}, probability = {}, nearly = {}, refs = Object.fromEntries(data.legs.map(leg => [leg.id, []]))
+    for (const leg of data.legs) {
+      const market = data.markets?.[leg.id] || {}
+      const result = String(market.result || '').toLowerCase()
+      const bid = Number(market.yes_bid_dollars), ask = Number(market.yes_ask_dollars)
+      const quoted = market.yes_bid_dollars != null && market.yes_ask_dollars != null && Number.isFinite(bid) && Number.isFinite(ask)
+      const mid = quoted ? Math.max(0, Math.min(1, (bid + ask) / 2)) : null
+      probability[leg.id] = mid
+      const raw = result === 'yes' ? 'won' : result === 'no' ? 'lost' : now >= Date.parse(leg.start) ? 'live' : 'upcoming'
+      nearly[leg.id] = raw === 'live' && mid !== null ? mid <= .02 ? 'lost' : mid >= .98 ? 'won' : null : null
+      state[leg.id] = nearly[leg.id] || raw
+    }
+    const slips = data.slips.map(slip => ({ ...slip, status: slip.cashout && Number(slip.cashout.remainingFraction) === 0 ? 'cashed' : slip.legIds.some(id => state[id] === 'lost') ? 'dead' : slip.legIds.every(id => state[id] === 'won') ? 'won' : 'alive' }))
+    const totals = { staked:0, locked:0, possible:0, riding:0, now:0 }
+    for (const slip of slips) {
+      const received = slip.cashout?.amount || 0
+      const fraction = slip.cashout ? Number(slip.cashout.remainingFraction) : 1
+      const remainingStake = slip.stake * fraction, remainingPayout = slip.totalPayout * fraction
+      totals.staked += slip.stake
+      totals.locked += received
+      totals.now += received - (slip.status === 'alive' ? slip.stake - remainingStake : slip.stake)
+      if (slip.status === 'won') { totals.locked += remainingPayout; totals.now += remainingPayout }
+      if (slip.status === 'alive') { totals.riding += remainingStake; totals.possible += remainingPayout }
+      for (const id of new Set(slip.legIds)) refs[id].push({ number:slip.number, status:slip.status, stake:remainingStake })
+    }
+    const maxProfit = totals.locked + totals.possible - totals.staked
+    const stat = (label, value, signedValue = false) => `<div class="metric"><span class="label">${label}</span><strong class="${signedValue ? value < 0 ? 'negative' : 'positive' : ''}">${signedValue ? signed(value) : money(value)}</strong></div>`
+    const slipOrder = { alive:0, won:1, dead:2, cashed:3 }
+    const legChips = slip => `<div class="leg-chips">${slip.legIds.map(id => {
+      const leg = legs[id], status = state[id]
+      const detail = status === 'won' ? '✓' : status === 'lost' ? '✕' : status === 'live' ? probability[id] === null ? 'Live' : pct(probability[id]) : hour(leg.start)
+      return `<span class="leg-chip ${status}" data-leg-id="${escapeHtml(id)}"><span>${escapeHtml(legName(leg))}</span><b>${escapeHtml(detail)}</b></span>`
+    }).join('')}</div>`
+    const slipRows = slips.filter(slip => filters.slips[slip.status]).sort((a,b) => slipOrder[a.status] - slipOrder[b.status] || a.number - b.number).map(slip => {
+      const received = slip.cashout?.amount || 0, fraction = slip.cashout ? Number(slip.cashout.remainingFraction) : 1
+      const payout = slip.totalPayout * fraction
+      const gain = slip.status === 'dead' || slip.status === 'cashed' ? received - slip.stake : received + payout - slip.stake
+      const times = [data.archived ? 'Modeled from pregame prices' : `Placed ${stamp(slip.placed)}`]
+      const results = slip.legIds.map(id => data.markets?.[id] || {})
+      const finalAt = slip.status === 'won' ? Math.max(...results.map(m => Date.parse(m.settlement_ts || m.close_time))) : slip.status === 'dead' ? Math.min(...results.filter(m => String(m.result).toLowerCase() === 'no').map(m => Date.parse(m.settlement_ts || m.close_time))) : NaN
+      if (Number.isFinite(finalAt)) times.push(`Settled ${stamp(finalAt)}`)
+      if (slip.status === 'cashed' && slip.cashout?.at) times.push(`Cashed out ${stamp(slip.cashout.at)}`)
+      return `<tr id="slip-${slip.number}"><th scope="row" class="slip-id">#${slip.number}<small class="slip-times">${escapeHtml(times.join(' · '))}</small>${legChips(slip)}${slip.cashout ? `<small class="cashout-detail">Cashed out ${money(received)}${fraction ? `, ${pct(fraction)} still riding` : ''}</small>` : ''}</th><td data-label="Stake">${money(slip.stake)}</td><td data-label="Max payout">${money(payout)}</td><td data-label="Profit">${slip.status === 'alive' ? 'Up to ' : ''}${signed(gain)}</td><td data-label="Legs hit">${slip.legIds.filter(id => state[id] === 'won').length}/${slip.legIds.length}</td><td data-label="Status">${badge(slip.status, slip.status === 'cashed' ? 'Cashed out' : slip.status)}</td></tr>`
+    }).join('')
+    const timelineStatus = leg => state[leg.id] === 'lost' || state[leg.id] !== 'won' && !refs[leg.id].some(ref => ref.status === 'alive') ? 'dead' : state[leg.id]
+    const order = { live:0, upcoming:1, won:2, dead:3 }
+    const timelineRows = data.legs.filter(leg => filters.timeline[timelineStatus(leg)]).sort((a,b) => order[timelineStatus(a)] - order[timelineStatus(b)] || (timelineStatus(a) === 'won' ? Date.parse(b.start) - Date.parse(a.start) : Date.parse(a.start) - Date.parse(b.start))).map(leg => {
+      const status = timelineStatus(leg), market = data.markets?.[leg.id] || {}
+      const chance = nearly[leg.id] ? pct(probability[leg.id]) : state[leg.id] === 'won' ? '100.0%' : state[leg.id] === 'lost' ? '0.0%' : probability[leg.id] !== null ? pct(probability[leg.id]) : 'quote unavailable'
+      const alive = refs[leg.id].filter(ref => ref.status === 'alive')
+      const links = refs[leg.id].map(ref => `<button type="button" class="slip-link" data-jump="${escapeHtml(leg.id)}" data-slip="${ref.number}">#${ref.number}</button>`).join(' ')
+      const age = Number.isFinite(market.fetchedAt) ? Math.floor((now - market.fetchedAt) / 1000) : null
+      const detail = data.archived ? `Settled ${stamp(market.settlement_ts || market.close_time)}. Slips ${links}` : `In ${alive.length} alive ${alive.length === 1 ? 'slip' : 'slips'}, ${money(alive.reduce((sum, ref) => sum + ref.stake, 0))} riding. ${age === null ? 'No market data yet' : `Updated ${Math.max(0, age)} seconds ago${age > 360 ? ' (stale)' : ''}`}. Slips ${links}`
+      return `<li class="timeline-item"><time>${escapeHtml(hour(leg.start))}</time><div><button type="button" class="leg-jump" data-jump="${escapeHtml(leg.id)}">${escapeHtml(legName(leg))} (${chance})</button>${badge(nearly[leg.id] || status, nearly[leg.id] ? `${nearly[leg.id]} (nearly)` : status)}<small class="references">${detail}</small></div></li>`
+    }).join('')
+    content.innerHTML = `<nav class="day-tabs" aria-label="Demo days">${data.days.map(date => `<button type="button" class="filter-chip" data-day="${escapeHtml(date)}" aria-pressed="${date === data.date}">${day(date)}</button>`).join('')}</nav>
+    <section class="metrics" aria-label="Day summary">${data.archived
+      ? `${stat('Day profit', totals.now, true)}${stat('Staked', totals.staked)}${stat('Paid out', totals.locked)}${trackRecord(data)}`
+      : `${stat('Profit now', totals.now, true)}${stat('Still riding', totals.riding)}${stat('Max profit', maxProfit, true)}${stat('Staked', totals.staked)}${stat('Payout locked in', totals.locked)}${stat('Max still possible', totals.possible)}${trackRecord(data)}<div class="metric primary"><span class="label">Chance the day ends in profit</span><strong>${pct(data.portfolio.dayProfitChance)}</strong><span class="sub">Live model · ${data.portfolio.trials.toLocaleString('en-US')} trials</span></div>`}</section>
+    <section aria-labelledby="timeline-title"><div class="section-top"><h2 id="timeline-title">Timeline</h2><p>${data.archived ? 'Final market results from Kalshi.' : 'Live prices and final results from Kalshi.'}</p></div><div class="filters" aria-label="Timeline filters">${filterButtons('timeline', data.archived)}</div><ol class="timeline">${timelineRows || '<li class="empty">No legs in these filters.</li>'}</ol></section>
+    <section aria-labelledby="slips-title"><div class="section-top"><h2 id="slips-title">Slips</h2><p>${data.archived ? 'Hypothetical slips settled from real Kalshi results.' : 'Hypothetical entries. Profit is potential while a slip is alive.'}</p></div><div class="filters" aria-label="Slip filters">${filterButtons('slips', data.archived)}</div><div class="table-wrap"><table class="slips-table"><thead><tr><th>Slip and legs</th><th>Stake</th><th>Max payout</th><th>Profit</th><th>Legs hit</th><th>Status</th></tr></thead><tbody>${slipRows || '<tr><td colspan="6">No slips in these filters.</td></tr>'}</tbody></table></div></section>
+    <section aria-labelledby="pricing-title"><div class="section-top"><h2 id="pricing-title">Price versus fair</h2><p>Archived legs use Kalshi's last pregame bid and ask. Current fair estimates name their source. Under fair includes the estimated taker fee.</p></div><div class="table-wrap"><table><thead><tr><th>Market and Pacific event start</th><th>Kalshi ask</th><th>Fair reference</th><th>Fee</th><th>Under fair</th></tr></thead><tbody>${data.legs.map(priceRow).join('')}</tbody></table></div></section>
+    
+    <section id="method" aria-labelledby="method-title"><div class="section-top"><h2 id="method-title">How it works</h2></div>${howItWorks(data)}</section>`
+    renderChecker(data)
+  }
+  content.addEventListener('click', event => {
+    const dayButton = event.target.closest?.('[data-day]')
+    if (dayButton && dayButton.dataset.day !== selectedDay) {
+      if (dayButton.dataset.day !== lastData.date) {
+        filters.timeline.won = filters.timeline.dead = true
+        filters.slips.won = filters.slips.dead = true
+        saveFilters()
+      }
+      selectedDay = dayButton.dataset.day
+      globalThis.history?.replaceState?.(null, '', `?d=${selectedDay}`)
+      refresh(true); return
+    }
+    const filter = event.target.closest?.('[data-filter]')
+    if (filter) { const group = filter.dataset.group, status = filter.dataset.filter; filters[group][status] = !filters[group][status]; saveFilters(); render(lastData); return }
+    const check = event.target.closest?.('[data-check]')
+    if (check) { togglePrice(check); return }
+    const jump = event.target.closest?.('[data-jump]')
+    if (jump) {
+      const id = jump.dataset.jump
+      const slip = lastData.slips.find(item => item.number === Number(jump.dataset.slip)) || lastData.slips.find(item => item.legIds.includes(id))
+      if (!slip) return
+      for (const status of Object.keys(filters.slips)) filters.slips[status] = true
+      saveFilters(); render(lastData)
+      const row = document.getElementById(`slip-${slip.number}`)
+      row?.scrollIntoView?.({ behavior:'smooth', block:'center' })
+      row?.querySelector?.(`[data-leg-id="${CSS.escape(id)}"]`)?.classList.add('highlight')
+    }
+  })
+  function togglePrice(row) {
+    const id = row.dataset.check
+    if (selected.has(id)) selected.delete(id); else selected.add(id)
+    row.classList.toggle('selected', selected.has(id))
+    row.setAttribute('aria-selected', String(selected.has(id)))
+    row.setAttribute('aria-label', `${legName(lastData.legs.find(leg => leg.id === id))}, ${selected.has(id) ? 'selected' : 'select for slip checker'}`)
+    renderChecker(lastData)
+  }
+  content.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    const row = event.target.closest?.('[data-check]')
+    if (!row) return
+    event.preventDefault()
+    togglePrice(row)
+  })
+  async function refresh(force = false) {
+    if (!force && lastData?.archived) return
+    try {
+      const response = await fetch(`/api/engine${selectedDay ? `?d=${encodeURIComponent(selectedDay)}` : ''}`, { cache:'no-store' })
+      if (!response.ok) throw new Error('Pricing slate unavailable')
+      render(await response.json())
+    } catch { content.innerHTML = '<p class="error">Pricing is temporarily unavailable. Please try again shortly.</p>' }
+  }
+  refresh()
+  setInterval(refresh, 30000)
+  setInterval(() => { if (lastData) render(lastData) }, 60000)
 </script>
 </body>
 </html>
