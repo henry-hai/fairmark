@@ -9,10 +9,13 @@ import re
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cashout_detection import update_cashouts
 
 KALSHI_MARKETS = 'https://external-api.kalshi.com/trade-api/v2/markets'
 PINNACLE = 'https://guest.api.arcadia.pinnacle.com/0.1'
@@ -196,6 +199,10 @@ def poll(kv, *, now=lambda: int(time.time() * 1000)):
            for leg in config['legs']):
         raise PollError('Schedule config has invalid tickers')
     tickers = list(dict.fromkeys(leg['ticker'] for leg in config['legs']))
+    try:
+        update_cashouts(kv, config)
+    except Exception as error:
+        print(f'Cash-out detection failed: {type(error).__name__}: {error}', file=sys.stderr)
     snapshot = kv.get('snapshot:current')
     try:
         live_status = pinnacle_status(config, os.environ.get('PINNACLE_API_KEY'))
