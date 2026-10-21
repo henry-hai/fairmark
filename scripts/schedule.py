@@ -141,11 +141,16 @@ def read_overrides(path: Path) -> dict[str, Override]:
     return overrides
 
 
+def event_of(ticker: str) -> str:
+    """Kalshi event tickers are the first two parts, even for props like KXNFLREC-EXAMPLE-PLAYER-2."""
+    return '-'.join(ticker.split('-')[:2])
+
+
 def pinned_events(overrides: dict[str, Override]) -> tuple[list[dict], dict[str, dict]]:
     events = []
     markets = {}
     limiter = clients.KalshiRateLimiter()
-    event_tickers = {item.ticker.rsplit('-', 1)[0] for item in overrides.values()}
+    event_tickers = {event_of(item.ticker) for item in overrides.values()}
     for event_ticker in sorted(event_tickers):
         payload = clients._kalshi_get(f'{API}/events/{event_ticker}?with_nested_markets=true', limiter)
         event = payload['event']
@@ -231,8 +236,8 @@ def build(day: date, slips: list[Slip], overrides: dict[str, Override]) -> tuple
         if start is None:
             raise ValueError(f'No start time for {name}')
         items.append({'name': name, 'ticker': ticker, 'side': side,
-                      'eventTicker': ticker.rsplit('-', 1)[0],
-                      'eventTitle': pinned_titles.get(ticker.rsplit('-', 1)[0], kalshi.event),
+                      'eventTicker': event_of(ticker),
+                      'eventTitle': pinned_titles.get(event_of(ticker), kalshi.event),
                       'start': start.astimezone(timezone.utc).isoformat(), 'estimated': estimated,
                       'startSource': start_source})
     for message in warnings + notes:

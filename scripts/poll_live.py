@@ -13,6 +13,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
+
 KALSHI_MARKETS = 'https://external-api.kalshi.com/trade-api/v2/markets'
 PINNACLE = 'https://guest.api.arcadia.pinnacle.com/0.1'
 PINNACLE_SPORTS = (22, 6, 12, 3, 4, 15, 19, 29)
@@ -122,6 +123,16 @@ def iso_start(value):
         return None
 
 
+def near_start(matchup, scheduled, hours=3):
+    """City names repeat across sports and days, so a match must start within a few hours of the slip's own start."""
+    start = iso_start(matchup.get('startTime') or (matchup.get('parent') or {}).get('startTime'))
+    scheduled = iso_start(scheduled)
+    if not start or not scheduled:
+        return True
+    gap = abs(datetime.fromisoformat(start.replace('Z', '+00:00')) - datetime.fromisoformat(scheduled.replace('Z', '+00:00')))
+    return gap.total_seconds() <= hours * 3600
+
+
 def pinnacle_status(config, api_key):
     if not api_key:
         return {leg['name']: {'live': False, 'start': None} for leg in config['legs'] if leg.get('name')}
@@ -144,7 +155,8 @@ def pinnacle_status(config, api_key):
         if not leg.get('name'):
             continue
         title = leg.get('eventTitle', '')
-        matches = [matchup for matchup in matchups if title and same_matchup(title, matchup)]
+        matches = [matchup for matchup in matchups if title and same_matchup(title, matchup)
+                   and near_start(matchup, leg.get('start'))]
         if matches:
             match = next((item for item in matches if not item.get('parentId')), matches[0])
             start = iso_start(match.get('startTime') or (match.get('parent') or {}).get('startTime'))
