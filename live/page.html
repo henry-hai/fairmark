@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bet Schedule</title>
   <style>
-    :root { color-scheme: light dark; --bg: #f5f6fa; --panel: #fff; --text: #182130; --muted: #5b6574; --line: #dce1e8; --accent: #165ab8; --won: #157249; --lost: #b23543; --live: #9b5a0a; --upcoming: #566276; }
-    @media (prefers-color-scheme: dark) { :root { --bg: #10151e; --panel: #1b2330; --text: #eef2f8; --muted: #b0bac7; --line: #344052; --accent: #87b8ff; --won: #6fdaad; --lost: #ff8992; --live: #ffc477; --upcoming: #bcc8d9; } }
+    :root { color-scheme: light dark; --bg: #f5f6fa; --panel: #fff; --text: #182130; --muted: #5b6574; --line: #dce1e8; --accent: #165ab8; --won: #157249; --lost: #b23543; --live: #9b5a0a; --upcoming: #566276; --cashed: #9b5a0a; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #10151e; --panel: #1b2330; --text: #eef2f8; --muted: #b0bac7; --line: #344052; --accent: #87b8ff; --won: #6fdaad; --lost: #ff8992; --live: #ffc477; --upcoming: #bcc8d9; --cashed: #f4cc7b; } }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -30,6 +30,8 @@
     .filters { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 10px; }
     .filter-chip { border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--muted); padding: 5px 11px; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
     .filter-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+    #slip-filters [data-filter="cashed"] { color: var(--cashed); }
+    #slip-filters [data-filter="cashed"][aria-pressed="true"] { border-color: var(--cashed); }
     .filter-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .timeline-item { display: grid; grid-template-columns: 95px minmax(0, 1fr); gap: 10px; border-bottom: 1px solid var(--line); padding: 12px 2px; }
     .timeline-item.won-leg { opacity: .55; }
@@ -40,7 +42,7 @@
     .references { color: var(--muted); font-size: .83rem; margin-top: 3px; }
     .references a { color: var(--accent); margin-right: 6px; }
     .badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-size: .75rem; font-weight: 700; text-transform: uppercase; vertical-align: 2px; }
-    .won { color: var(--won); } .lost, .dead { color: var(--lost); } .live { color: var(--live); } .upcoming, .alive, .cashed { color: var(--upcoming); }
+    .won { color: var(--won); } .lost, .dead { color: var(--lost); } .live { color: var(--live); } .upcoming, .alive { color: var(--upcoming); } .cashed { color: var(--cashed); }
     table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
     th, td { text-align: left; padding: 11px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
     thead th { color: var(--muted); font-size: .78rem; font-weight: 700; }
@@ -60,11 +62,17 @@
     .leg-chip.lost .leg-name { text-decoration: line-through; }
     .leg-chip.killer { font-weight: 700; }
     .leg-chip .leg-detail { white-space: nowrap; }
-    .cashout-detail { display: block; color: var(--muted); font-size: .78rem; font-weight: 400; margin-top: 3px; }
+    .cashout-detail { display: block; color: var(--cashed); font-size: .78rem; font-weight: 400; margin-top: 3px; }
     td { white-space: nowrap; font-variant-numeric: tabular-nums; }
     td .badge { margin-left: 0; }
     .note { margin-top: 10px; font-size: .82rem; }
     .days { margin: 14px 0 0; }
+    .track-record { margin-top: 10px; color: var(--muted); font-size: .83rem; }
+    .track-record strong { color: var(--text); font-size: .95rem; }
+    .track-record details { margin-top: 4px; }
+    .track-record summary { cursor: pointer; }
+    .track-record ul { margin: 7px 0 0; padding-left: 20px; }
+    .track-record li { display: flex; gap: 12px; max-width: 230px; justify-content: space-between; }
     .slip-times { display: block; color: var(--muted); font-size: .78rem; font-weight: 400; margin-top: 4px; }
     .lists { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .lists .stat ul { margin: 6px 0 0; padding-left: 18px; }
@@ -89,7 +97,7 @@
 </head>
 <body>
 <main>
-  <header><h1 id="title">Bet Schedule</h1><p class="intro" id="updated">Loading schedule</p><div class="filters days" id="days" role="group" aria-label="Days"></div></header>
+  <header><h1 id="title">Bet Schedule</h1><p class="intro" id="updated">Loading schedule</p><div class="filters days" id="days" role="group" aria-label="Days"></div><div class="track-record" id="track-record"></div></header>
   <section class="profit-tracker" aria-label="Profit tracker" id="profit-tracker"></section>
   <section class="summary" aria-label="Totals" id="summary"></section>
   <section aria-labelledby="timeline-heading"><h2 id="timeline-heading">Timeline</h2><div class="filters" id="timeline-filters" role="group" aria-label="Timeline status filters"></div><ol class="timeline" id="timeline"></ol></section>
@@ -162,6 +170,49 @@
     refresh(true)
   })
 
+  function dailyNet(day) {
+    if (day.missing) return null
+    const { config, markets = {}, legStatus = {}, firstPrices = {} } = day
+    const states = {}
+    for (const leg of config.legs) {
+      const market = markets[leg.ticker] || {}
+      const result = String(market.result || '').toLowerCase()
+      const bid = Number(market[`${leg.side}_bid_dollars`])
+      const ask = Number(market[`${leg.side}_ask_dollars`])
+      const quoted = market[`${leg.side}_bid_dollars`] != null && market[`${leg.side}_ask_dollars`] != null && Number.isFinite(bid) && Number.isFinite(ask)
+      const probability = quoted ? Math.max(0, Math.min(1, (bid + ask) / 2)) : null
+      const firstPrice = firstPrices[leg.name]
+      const priceMoved = probability !== null && typeof firstPrice === 'number' &&
+        Math.abs(Math.round(probability * 10000) - Math.round(firstPrice * 10000)) > 800
+      const state = result === 'yes' || result === 'no' ? (result === leg.side ? 'won' : 'lost') :
+        legStatus[leg.name]?.live === true || Date.now() >= Date.parse(legStatus[leg.name]?.start || leg.start) || priceMoved ? 'live' : 'upcoming'
+      const nearly = state === 'live' && probability !== null ? (probability <= 0.02 ? 'lost' : probability >= 0.98 ? 'won' : null) : null
+      states[leg.name] = nearly || state
+    }
+    let net = -(config.depositFee == null ? 0 : cents(config.depositFee))
+    let missingPayout = false
+    for (const slip of config.slips) {
+      const cashout = config.cashouts?.[slip.name]
+      const fraction = cashout ? Number(cashout.remainingFraction) : 1
+      const status = cashout && fraction === 0 ? 'cashed' : slip.legs.some(name => states[name] === 'lost') ? 'dead' : slip.legs.every(name => states[name] === 'won') ? 'won' : 'alive'
+      const stake = cents(slip.stake)
+      net += (cashout ? cents(cashout.amount) : 0) - (status === 'alive' ? stake - Math.round(stake * fraction) : stake)
+      if (status === 'won' && fraction !== 0) {
+        if (slip.payout == null) missingPayout = true
+        else net += Math.round(cents(slip.payout) * fraction)
+      }
+    }
+    return missingPayout ? null : net
+  }
+
+  function renderTrackRecord(data) {
+    const days = Array.isArray(data.history) ? data.history : [{ date: data.config.date, ...data }]
+    const nets = days.map(day => ({ date: day.date, net: dailyNet(day) }))
+    const allTime = nets.some(day => day.net === null) ? null : nets.reduce((sum, day) => sum + day.net, 0)
+    const rows = nets.map(day => `<li><span>${escapeHtml(day.date)}</span><span class="${profitClass(day.net)}">${profitValue(day.net)}</span></li>`).join('')
+    document.getElementById('track-record').innerHTML = `<strong>All-time net ${profitValue(allTime)}</strong> · ${nets.length} ${nets.length === 1 ? 'day' : 'days'} tracked<details data-expand-key="track-record"${expanded.get('track-record') ? ' open' : ''}><summary>By day</summary><ul>${rows}</ul></details>`
+  }
+
   function render(data) {
     rememberExpansion()
     lastData = data
@@ -177,6 +228,7 @@
     updated.className = needsRefresh && !data.archived ? 'intro warning' : 'intro'
     const days = Array.isArray(data.days) ? data.days : []
     document.getElementById('days').innerHTML = days.length > 1 ? days.map(day => `<button type="button" class="filter-chip" data-day="${escapeHtml(day)}" aria-pressed="${day === config.date}">${escapeHtml(dayLabel(day))}</button>`).join('') : ''
+    renderTrackRecord(data)
     const lists = data.lists && Object.keys(data.lists).length ? data.lists : config.lists || {}
     const shown = LISTS.filter(([key]) => Array.isArray(lists[key]) && lists[key].length)
     document.getElementById('lists-section').hidden = !shown.length
