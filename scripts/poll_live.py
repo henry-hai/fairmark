@@ -8,11 +8,12 @@ import os
 import re
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cashout_detection import update_cashouts
@@ -21,6 +22,8 @@ KALSHI_MARKETS = 'https://external-api.kalshi.com/trade-api/v2/markets'
 PINNACLE = 'https://guest.api.arcadia.pinnacle.com/0.1'
 PINNACLE_SPORTS = (22, 6, 12, 3, 4, 15, 19, 29)
 CF_KV = 'https://api.cloudflare.com/client/v4/accounts/{account}/storage/kv/namespaces/{namespace}/values/{key}'
+DEMO_INTERVAL_MS = 30 * 60 * 1000
+PACIFIC = ZoneInfo('America/Los_Angeles')
 
 
 class PollError(Exception):
@@ -228,12 +231,123 @@ def poll(kv, *, now=lambda: int(time.time() * 1000)):
         raise
 
 
+def build_public_demo(attempted_at):
+    from build_demo import refresh_demo
+    return refresh_demo(now=datetime.fromtimestamp(attempted_at / 1000, timezone.utc))
+
+
+def demo_date(config):
+    if not isinstance(config, dict):
+        return None
+    if config.get('date'):
+        return config['date']
+    try:
+        return datetime.fromisoformat(config['asOf'].replace('Z', '+00:00')).astimezone(PACIFIC).date().isoformat()
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def demo_snapshot(config, previous, fetched, fetched_at):
+    used = {ticker for slip in config['slips'] for ticker in slip['legIds']}
+    old = previous.get('markets', {}) if isinstance(previous, dict) and previous.get('date') == demo_date(config) else {}
+    markets = {ticker: market for ticker, market in old.items() if ticker in used}
+    for ticker, market in fetched.items():
+        if ticker in used:
+            markets[ticker] = {key: market.get(key) for key in (
+                'yes_bid_dollars', 'yes_ask_dollars', 'result', 'settlement_ts', 'close_time')}
+            markets[ticker]['fetchedAt'] = fetched_at
+    return {'date': demo_date(config), 'markets': markets}
+
+
+def fetch_demo_markets(config):
+    tickers = list(dict.fromkeys(ticker for slip in config['slips'] for ticker in slip['legIds']))
+    fetched = {}
+    for offset in range(0, len(tickers), 100):
+        batch = tickers[offset:offset + 100]
+        payload = parse_json(request(KALSHI_MARKETS + '?' + urlencode({'tickers': ','.join(batch)}),
+                                     service='Kalshi'), 'Kalshi')
+        if not isinstance(payload, dict) or not isinstance(payload.get('markets'), list):
+            raise PollError('Kalshi returned invalid demo markets')
+        fetched.update({market['ticker']: market for market in payload['markets']
+                        if isinstance(market, dict) and market.get('ticker') in batch})
+    return fetched
+
+
+def demo_finished(config, snapshot):
+    if not isinstance(config, dict) or not isinstance(snapshot, dict):
+        return False
+    markets = snapshot.get('markets') or {}
+    return all(str((markets.get(ticker) or {}).get('result', '')).lower() in ('yes', 'no')
+               for slip in config.get('slips', []) for ticker in slip.get('legIds', []))
+
+
+def refresh_public_demo(kv, *, now=lambda: int(time.time() * 1000)):
+    try:
+        attempted_at = now()
+        previous_attempt = kv.get('demo:last_attempt')
+        previous_at = previous_attempt.get('at') if isinstance(previous_attempt, dict) else None
+        if isinstance(previous_at, (int, float)):
+            elapsed = attempted_at - previous_at
+            if 0 <= elapsed < DEMO_INTERVAL_MS:
+                return
+        kv.put('demo:last_attempt', {'at': attempted_at})
+        previous = kv.get('config:demo')
+        previous_snapshot = kv.get('snapshot:demo')
+        if isinstance(previous, dict) and previous.get('slips'):
+            current_markets = fetch_demo_markets(previous)
+            previous_snapshot = demo_snapshot(previous, previous_snapshot, current_markets, attempted_at)
+            if previous_snapshot != kv.get('snapshot:demo'):
+                kv.put('snapshot:demo', previous_snapshot)
+        config = build_public_demo(attempted_at)
+        slips = config.get('slips') if isinstance(config, dict) else None
+        if not isinstance(slips, list) or not slips or any(
+                not isinstance(slip, dict) or not isinstance(slip.get('legIds'), list) or
+                not slip['legIds'] for slip in slips):
+            raise ValueError('Demo build has no valid slips')
+        config['date'] = demo_date(config)
+        if not config['date']:
+            raise ValueError('Demo build has no date')
+        old_date = demo_date(previous)
+        old_ids = [slip['legIds'] for slip in previous.get('slips', [])] if isinstance(previous, dict) else []
+        new_ids = [slip['legIds'] for slip in slips]
+        if previous and (old_date != config['date'] or old_ids != new_ids):
+            if not demo_finished(previous, previous_snapshot):
+                config = {**previous, 'date': old_date}
+            else:
+                if old_date and old_date != config['date']:
+                    kv.put(f'day:demo:{old_date}', {'config': {**previous, 'date': old_date},
+                                                    'snapshot': previous_snapshot})
+                    days = kv.get('days:demo')
+                    kv.put('days:demo', sorted(set((days if isinstance(days, list) else []) + [old_date])))
+        if previous and old_date == config['date']:
+            old_slips = {tuple(slip['legIds']): slip for slip in previous.get('slips', [])}
+            for slip in config['slips']:
+                old = old_slips.get(tuple(slip['legIds']))
+                if old:
+                    slip['placed'] = old.get('placed') or previous.get('asOf')
+        snapshot = previous_snapshot if config is previous else None
+        if not previous or demo_date(config) != old_date or [slip['legIds'] for slip in config['slips']] != old_ids:
+            snapshot = demo_snapshot(config, None, fetch_demo_markets(config), attempted_at)
+        elif snapshot is None:
+            snapshot = demo_snapshot(config, previous_snapshot, {}, attempted_at)
+        if snapshot != previous_snapshot:
+            kv.put('snapshot:demo', snapshot)
+        old_content = ({key: value for key, value in previous.items() if key != 'asOf'}
+                       if isinstance(previous, dict) else None)
+        new_content = {key: value for key, value in config.items() if key != 'asOf'}
+        if new_content != old_content:
+            kv.put('config:demo', config)
+    except Exception as error:
+        print(f'Demo refresh failed: {type(error).__name__}: {error}', file=sys.stderr)
+
+
 def main():
     names = ('CF_API_TOKEN', 'CF_ACCOUNT_ID', 'CF_KV_NAMESPACE_ID')
     if any(not os.environ.get(name) for name in names):
         raise PollError('Cloudflare credentials are missing')
     kv = KV(*(os.environ[name] for name in names))
     poll(kv)
+    refresh_public_demo(kv)
     print('Live poll completed')
 
 

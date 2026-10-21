@@ -1,0 +1,608 @@
+{
+  "source": "Kalshi public market results and hourly candlesticks. Game starts from ESPN schedules, CS2 market rules, and the UFC card start.",
+  "markets": {
+    "KXCS2GAME-26OCT161200FIREHEC-FIRE": {
+      "ticker": "KXCS2GAME-26OCT161200FIREHEC-FIRE",
+      "name": "Fire Flux Esports wins",
+      "event": "Fire Flux Esports vs. Hermine Esports Club",
+      "start": "2026-10-16T12:00:00-04:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-16T17:02:51.772872Z",
+      "close_time": "2026-10-16T16:59:56Z",
+      "ask": 0.81,
+      "bid": 0.78,
+      "candleEnd": "2026-10-16T15:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXCS2GAME-26OCT161200FIREHEC-FIRE",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXCS2GAME/markets/KXCS2GAME-26OCT161200FIREHEC-FIRE/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "CS2",
+      "date": "2026-10-16"
+    },
+    "KXNBAGAME-26OCT16MIAORL-ORL": {
+      "ticker": "KXNBAGAME-26OCT16MIAORL-ORL",
+      "name": "Orlando wins",
+      "event": "Miami vs Orlando \u00b7 preseason",
+      "start": "2026-10-16T23:00:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-17T01:32:06.798003Z",
+      "close_time": "2026-10-17T01:30:22Z",
+      "ask": 0.72,
+      "bid": 0.71,
+      "candleEnd": "2026-10-16T22:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNBAGAME-26OCT16MIAORL-ORL",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNBAGAME/markets/KXNBAGAME-26OCT16MIAORL-ORL/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NBA",
+      "date": "2026-10-16"
+    },
+    "KXNBAGAME-26OCT16MILIND-IND": {
+      "ticker": "KXNBAGAME-26OCT16MILIND-IND",
+      "name": "Indiana wins",
+      "event": "Milwaukee vs Indiana \u00b7 preseason",
+      "start": "2026-10-16T23:00:00+00:00",
+      "result": "no",
+      "status": "finalized",
+      "settlement_ts": "2026-10-17T01:41:31.845254Z",
+      "close_time": "2026-10-17T01:39:47Z",
+      "ask": 0.72,
+      "bid": 0.71,
+      "candleEnd": "2026-10-16T22:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNBAGAME-26OCT16MILIND-IND",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNBAGAME/markets/KXNBAGAME-26OCT16MILIND-IND/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NBA",
+      "date": "2026-10-16"
+    },
+    "KXNBAGAME-26OCT16SACSAS-SAS": {
+      "ticker": "KXNBAGAME-26OCT16SACSAS-SAS",
+      "name": "San Antonio wins",
+      "event": "Sacramento vs San Antonio \u00b7 preseason",
+      "start": "2026-10-17T00:00:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-17T02:31:31.789434Z",
+      "close_time": "2026-10-17T02:29:43Z",
+      "ask": 0.89,
+      "bid": 0.88,
+      "candleEnd": "2026-10-16T15:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNBAGAME-26OCT16SACSAS-SAS",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNBAGAME/markets/KXNBAGAME-26OCT16SACSAS-SAS/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NBA",
+      "date": "2026-10-16"
+    },
+    "KXNBAGAME-26OCT16TORDET-DET": {
+      "ticker": "KXNBAGAME-26OCT16TORDET-DET",
+      "name": "Detroit wins",
+      "event": "Toronto vs Detroit \u00b7 preseason",
+      "start": "2026-10-16T23:00:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-17T01:53:11.819199Z",
+      "close_time": "2026-10-17T01:51:23Z",
+      "ask": 0.79,
+      "bid": 0.78,
+      "candleEnd": "2026-10-16T22:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNBAGAME-26OCT16TORDET-DET",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNBAGAME/markets/KXNBAGAME-26OCT16TORDET-DET/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NBA",
+      "date": "2026-10-16"
+    },
+    "KXNCAAFGAME-26OCT15CSUTXST-TXST": {
+      "ticker": "KXNCAAFGAME-26OCT15CSUTXST-TXST",
+      "name": "Texas St. wins",
+      "event": "Colorado St. vs Texas St.",
+      "start": "2026-10-16T00:00:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-16T03:32:26.8243Z",
+      "close_time": "2026-10-16T03:29:57Z",
+      "ask": 0.85,
+      "bid": 0.84,
+      "candleEnd": "2026-10-15T23:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNCAAFGAME-26OCT15CSUTXST-TXST",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNCAAFGAME/markets/KXNCAAFGAME-26OCT15CSUTXST-TXST/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NCAAF",
+      "date": "2026-10-15"
+    },
+    "KXNCAAFGAME-26OCT17AUBUGA-UGA": {
+      "ticker": "KXNCAAFGAME-26OCT17AUBUGA-UGA",
+      "name": "Georgia wins",
+      "event": "Auburn vs Georgia",
+      "start": "2026-10-17T19:30:00+00:00",
+      "result": "no",
+      "status": "finalized",
+      "settlement_ts": "2026-10-17T23:07:32.120617Z",
+      "close_time": "2026-10-17T23:04:58Z",
+      "ask": 0.91,
+      "bid": 0.9,
+      "candleEnd": "2026-10-17T19:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNCAAFGAME-26OCT17AUBUGA-UGA",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNCAAFGAME/markets/KXNCAAFGAME-26OCT17AUBUGA-UGA/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NCAAF",
+      "date": "2026-10-17"
+    },
+    "KXNCAAFGAME-26OCT17FSUMIA-MIA": {
+      "ticker": "KXNCAAFGAME-26OCT17FSUMIA-MIA",
+      "name": "Miami (FL) wins",
+      "event": "Florida St. vs Miami (FL)",
+      "start": "2026-10-17T23:00:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-18T03:04:02.081881Z",
+      "close_time": "2026-10-18T03:00:02Z",
+      "ask": 0.92,
+      "bid": 0.91,
+      "candleEnd": "2026-10-17T19:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNCAAFGAME-26OCT17FSUMIA-MIA",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNCAAFGAME/markets/KXNCAAFGAME-26OCT17FSUMIA-MIA/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NCAAF",
+      "date": "2026-10-17"
+    },
+    "KXNCAAFGAME-26OCT17WSUORST-ORST": {
+      "ticker": "KXNCAAFGAME-26OCT17WSUORST-ORST",
+      "name": "Oregon St. wins",
+      "event": "Washington St. vs Oregon St.",
+      "start": "2026-10-17T22:00:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-18T01:52:41.79317Z",
+      "close_time": "2026-10-18T01:50:10Z",
+      "ask": 0.89,
+      "bid": 0.88,
+      "candleEnd": "2026-10-17T19:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNCAAFGAME-26OCT17WSUORST-ORST",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNCAAFGAME/markets/KXNCAAFGAME-26OCT17WSUORST-ORST/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NCAAF",
+      "date": "2026-10-17"
+    },
+    "KXNFLGAME-26OCT18ARILAR-LAR": {
+      "ticker": "KXNFLGAME-26OCT18ARILAR-LAR",
+      "name": "Los Angeles R wins",
+      "event": "ARI Cardinals vs LA Rams",
+      "start": "2026-10-18T20:05:00+00:00",
+      "result": "no",
+      "status": "finalized",
+      "settlement_ts": "2026-10-18T23:05:47.222406Z",
+      "close_time": "2026-10-18T23:02:43Z",
+      "ask": 0.88,
+      "bid": 0.87,
+      "candleEnd": "2026-10-18T16:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLGAME-26OCT18ARILAR-LAR",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLGAME/markets/KXNFLGAME-26OCT18ARILAR-LAR/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-18"
+    },
+    "KXNFLGAME-26OCT18LACKC-KC": {
+      "ticker": "KXNFLGAME-26OCT18LACKC-KC",
+      "name": "Kansas City wins",
+      "event": "LA Chargers vs KC Chiefs",
+      "start": "2026-10-18T20:25:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-18T23:31:27.087704Z",
+      "close_time": "2026-10-18T23:27:25Z",
+      "ask": 0.79,
+      "bid": 0.78,
+      "candleEnd": "2026-10-18T16:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLGAME-26OCT18LACKC-KC",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLGAME/markets/KXNFLGAME-26OCT18LACKC-KC/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-18"
+    },
+    "KXNFLGAME-26OCT19WASSF-SF": {
+      "ticker": "KXNFLGAME-26OCT19WASSF-SF",
+      "name": "San Francisco wins",
+      "event": "WAS Commanders vs SF 49ers",
+      "start": "2026-10-20T00:15:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-20T03:27:17.884432Z",
+      "close_time": "2026-10-20T03:21:17Z",
+      "ask": 0.77,
+      "bid": 0.76,
+      "candleEnd": "2026-10-20T00:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLGAME-26OCT19WASSF-SF",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLGAME/markets/KXNFLGAME-26OCT19WASSF-SF/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-19"
+    },
+    "KXNFLPASSYDS-26OCT15SEADEN-SEASDARNOLD14-175": {
+      "ticker": "KXNFLPASSYDS-26OCT15SEADEN-SEASDARNOLD14-175",
+      "name": "Sam Darnold: 175+ passing yards",
+      "event": "Seattle vs Denver: Passing Yards",
+      "start": "2026-10-16T00:15:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-16T03:39:21.790616Z",
+      "close_time": "2026-10-16T03:37:19Z",
+      "ask": 0.79,
+      "bid": 0.78,
+      "candleEnd": "2026-10-15T23:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLPASSYDS-26OCT15SEADEN-SEASDARNOLD14-175",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLPASSYDS/markets/KXNFLPASSYDS-26OCT15SEADEN-SEASDARNOLD14-175/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-15"
+    },
+    "KXNFLPASSYDS-26OCT18DALGB-DALDPRESCOTT4-225": {
+      "ticker": "KXNFLPASSYDS-26OCT18DALGB-DALDPRESCOTT4-225",
+      "name": "Dak Prescott: 225+ passing yards",
+      "event": "Dallas vs Green Bay: Passing Yards",
+      "start": "2026-10-19T00:20:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-19T03:59:31.878346Z",
+      "close_time": "2026-10-19T03:57:31Z",
+      "ask": 0.76,
+      "bid": 0.75,
+      "candleEnd": "2026-10-18T16:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLPASSYDS-26OCT18DALGB-DALDPRESCOTT4-225",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLPASSYDS/markets/KXNFLPASSYDS-26OCT18DALGB-DALDPRESCOTT4-225/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-18"
+    },
+    "KXNFLPASSYDS-26OCT19WASSF-SFBPURDY13-175": {
+      "ticker": "KXNFLPASSYDS-26OCT19WASSF-SFBPURDY13-175",
+      "name": "Brock Purdy: 175+ passing yards",
+      "event": "Washington vs San Francisco: Passing Yards",
+      "start": "2026-10-20T00:15:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-20T03:31:56.800746Z",
+      "close_time": "2026-10-20T03:29:56Z",
+      "ask": 0.89,
+      "bid": 0.88,
+      "candleEnd": "2026-10-20T00:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLPASSYDS-26OCT19WASSF-SFBPURDY13-175",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLPASSYDS/markets/KXNFLPASSYDS-26OCT19WASSF-SFBPURDY13-175/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-19"
+    },
+    "KXNFLREC-26OCT15SEADEN-SEAJSMITHNJIGBA11-5": {
+      "ticker": "KXNFLREC-26OCT15SEADEN-SEAJSMITHNJIGBA11-5",
+      "name": "Jaxon Smith-Njigba: 5+ receptions",
+      "event": "Seattle vs Denver: Receptions",
+      "start": "2026-10-16T00:15:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-16T02:30:31.784936Z",
+      "close_time": "2026-10-16T02:28:32Z",
+      "ask": 0.82,
+      "bid": 0.8,
+      "candleEnd": "2026-10-15T23:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLREC-26OCT15SEADEN-SEAJSMITHNJIGBA11-5",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLREC/markets/KXNFLREC-26OCT15SEADEN-SEAJSMITHNJIGBA11-5/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-15"
+    },
+    "KXNFLREC-26OCT18DALGB-DALCLAMB88-4": {
+      "ticker": "KXNFLREC-26OCT18DALGB-DALCLAMB88-4",
+      "name": "CeeDee Lamb: 4+ receptions",
+      "event": "Dallas vs Green Bay: Receptions",
+      "start": "2026-10-19T00:20:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-19T02:33:31.777239Z",
+      "close_time": "2026-10-19T02:31:30Z",
+      "ask": 0.86,
+      "bid": 0.84,
+      "candleEnd": "2026-10-18T16:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLREC-26OCT18DALGB-DALCLAMB88-4",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLREC/markets/KXNFLREC-26OCT18DALGB-DALCLAMB88-4/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-18"
+    },
+    "KXNFLREC-26OCT19WASSF-SFGKITTLE85-3": {
+      "ticker": "KXNFLREC-26OCT19WASSF-SFGKITTLE85-3",
+      "name": "George Kittle: 3+ receptions",
+      "event": "Washington vs San Francisco: Receptions",
+      "start": "2026-10-20T00:15:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-20T01:34:41.7821Z",
+      "close_time": "2026-10-20T01:32:40Z",
+      "ask": 0.89,
+      "bid": 0.88,
+      "candleEnd": "2026-10-20T00:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLREC-26OCT19WASSF-SFGKITTLE85-3",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLREC/markets/KXNFLREC-26OCT19WASSF-SFGKITTLE85-3/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-19"
+    },
+    "KXNFLREC-26OCT19WASSF-SFGKITTLE85-4": {
+      "ticker": "KXNFLREC-26OCT19WASSF-SFGKITTLE85-4",
+      "name": "George Kittle: 4+ receptions",
+      "event": "Washington vs San Francisco: Receptions",
+      "start": "2026-10-20T00:15:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-20T02:07:26.782427Z",
+      "close_time": "2026-10-20T02:05:26Z",
+      "ask": 0.77,
+      "bid": 0.76,
+      "candleEnd": "2026-10-20T00:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLREC-26OCT19WASSF-SFGKITTLE85-4",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLREC/markets/KXNFLREC-26OCT19WASSF-SFGKITTLE85-4/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-19"
+    },
+    "KXNFLRSHYDS-26OCT15SEADEN-DENJDOBBINS27-25": {
+      "ticker": "KXNFLRSHYDS-26OCT15SEADEN-DENJDOBBINS27-25",
+      "name": "J.K. Dobbins: 25+ rushing yards",
+      "event": "Seattle vs Denver: Rushing Yards",
+      "start": "2026-10-16T00:15:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-16T03:43:16.776821Z",
+      "close_time": "2026-10-16T03:41:14Z",
+      "ask": 0.83,
+      "bid": 0.82,
+      "candleEnd": "2026-10-15T23:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLRSHYDS-26OCT15SEADEN-DENJDOBBINS27-25",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLRSHYDS/markets/KXNFLRSHYDS-26OCT15SEADEN-DENJDOBBINS27-25/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-15"
+    },
+    "KXNFLRSHYDS-26OCT18BALCLE-BALDHENRY22-60": {
+      "ticker": "KXNFLRSHYDS-26OCT18BALCLE-BALDHENRY22-60",
+      "name": "Derrick Henry: 60+ rushing yards",
+      "event": "Baltimore vs Cleveland: Rushing Yards",
+      "start": "2026-10-18T17:00:00+00:00",
+      "result": "no",
+      "status": "finalized",
+      "settlement_ts": "2026-10-18T20:13:32.19435Z",
+      "close_time": "2026-10-18T20:11:33Z",
+      "ask": 0.79,
+      "bid": 0.78,
+      "candleEnd": "2026-10-18T16:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLRSHYDS-26OCT18BALCLE-BALDHENRY22-60",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLRSHYDS/markets/KXNFLRSHYDS-26OCT18BALCLE-BALDHENRY22-60/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-18"
+    },
+    "KXNFLRSHYDS-26OCT18LACKC-KCKWALKER9-70": {
+      "ticker": "KXNFLRSHYDS-26OCT18LACKC-KCKWALKER9-70",
+      "name": "Kenneth Walker III: 70+ rushing yards",
+      "event": "Los Angeles C vs Kansas City: Rushing Yards",
+      "start": "2026-10-18T20:25:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-18T23:39:31.409854Z",
+      "close_time": "2026-10-18T23:37:26Z",
+      "ask": 0.72,
+      "bid": 0.71,
+      "candleEnd": "2026-10-18T16:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLRSHYDS-26OCT18LACKC-KCKWALKER9-70",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLRSHYDS/markets/KXNFLRSHYDS-26OCT18LACKC-KCKWALKER9-70/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-18"
+    },
+    "KXNFLRSHYDS-26OCT19WASSF-SFBPURDY13-10": {
+      "ticker": "KXNFLRSHYDS-26OCT19WASSF-SFBPURDY13-10",
+      "name": "Brock Purdy: 10+ rushing yards",
+      "event": "Washington vs San Francisco: Rushing Yards",
+      "start": "2026-10-20T00:15:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-20T03:31:36.806217Z",
+      "close_time": "2026-10-20T03:29:35Z",
+      "ask": 0.76,
+      "bid": 0.75,
+      "candleEnd": "2026-10-20T00:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLRSHYDS-26OCT19WASSF-SFBPURDY13-10",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLRSHYDS/markets/KXNFLRSHYDS-26OCT19WASSF-SFBPURDY13-10/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-19"
+    },
+    "KXNFLRSHYDS-26OCT19WASSF-SFCMCCAFFREY23-40": {
+      "ticker": "KXNFLRSHYDS-26OCT19WASSF-SFCMCCAFFREY23-40",
+      "name": "Christian McCaffrey: 40+ rushing yards",
+      "event": "Washington vs San Francisco: Rushing Yards",
+      "start": "2026-10-20T00:15:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-20T03:31:36.78364Z",
+      "close_time": "2026-10-20T03:29:34Z",
+      "ask": 0.78,
+      "bid": 0.77,
+      "candleEnd": "2026-10-20T00:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXNFLRSHYDS-26OCT19WASSF-SFCMCCAFFREY23-40",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXNFLRSHYDS/markets/KXNFLRSHYDS-26OCT19WASSF-SFCMCCAFFREY23-40/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "NFL",
+      "date": "2026-10-19"
+    },
+    "KXUFCFIGHT-26OCT17LEBGAL-GAL": {
+      "ticker": "KXUFCFIGHT-26OCT17LEBGAL-GAL",
+      "name": "Nick Galanti wins",
+      "event": "Fight Night: Julien Leblanc vs Nick Galanti \u00b7 card start",
+      "start": "2026-10-17T21:00:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-17T23:25:36.862123Z",
+      "close_time": "2026-10-17T23:19:36Z",
+      "ask": 0.86,
+      "bid": 0.85,
+      "candleEnd": "2026-10-17T19:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXUFCFIGHT-26OCT17LEBGAL-GAL",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXUFCFIGHT/markets/KXUFCFIGHT-26OCT17LEBGAL-GAL/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "UFC",
+      "date": "2026-10-17"
+    },
+    "KXUFCFIGHT-26OCT17NALLAN-NAL": {
+      "ticker": "KXUFCFIGHT-26OCT17NALLAN-NAL",
+      "name": "Mandel Nallo wins",
+      "event": "Fight Night: Mandel Nallo vs Nate Landwehr \u00b7 card start",
+      "start": "2026-10-17T21:00:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-18T00:35:46.814256Z",
+      "close_time": "2026-10-18T00:29:47Z",
+      "ask": 0.73,
+      "bid": 0.72,
+      "candleEnd": "2026-10-17T19:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXUFCFIGHT-26OCT17NALLAN-NAL",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXUFCFIGHT/markets/KXUFCFIGHT-26OCT17NALLAN-NAL/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "UFC",
+      "date": "2026-10-17"
+    },
+    "KXUFCFIGHT-26OCT17NELPER-PER": {
+      "ticker": "KXUFCFIGHT-26OCT17NELPER-PER",
+      "name": "Cristian Perez wins",
+      "event": "Fight Night: Kyle Nelson vs Cristian Perez \u00b7 card start",
+      "start": "2026-10-17T21:00:00+00:00",
+      "result": "yes",
+      "status": "finalized",
+      "settlement_ts": "2026-10-18T01:45:41.812836Z",
+      "close_time": "2026-10-18T01:39:42Z",
+      "ask": 0.75,
+      "bid": 0.74,
+      "candleEnd": "2026-10-17T19:00:00+00:00",
+      "marketSource": "https://api.elections.kalshi.com/trade-api/v2/markets/KXUFCFIGHT-26OCT17NELPER-PER",
+      "priceSource": "https://api.elections.kalshi.com/trade-api/v2/series/KXUFCFIGHT/markets/KXUFCFIGHT-26OCT17NELPER-PER/candlesticks",
+      "fairSource": "Kalshi pregame mid",
+      "sport": "UFC",
+      "date": "2026-10-17"
+    }
+  },
+  "layout": {
+    "2026-10-15": [
+      [
+        75,
+        [
+          "KXNCAAFGAME-26OCT15CSUTXST-TXST",
+          "KXNFLPASSYDS-26OCT15SEADEN-SEASDARNOLD14-175"
+        ]
+      ],
+      [
+        50,
+        [
+          "KXNFLREC-26OCT15SEADEN-SEAJSMITHNJIGBA11-5",
+          "KXNFLRSHYDS-26OCT15SEADEN-DENJDOBBINS27-25"
+        ]
+      ],
+      [
+        25,
+        [
+          "KXNCAAFGAME-26OCT15CSUTXST-TXST",
+          "KXNFLRSHYDS-26OCT15SEADEN-DENJDOBBINS27-25"
+        ]
+      ]
+    ],
+    "2026-10-16": [
+      [
+        75,
+        [
+          "KXNBAGAME-26OCT16MIAORL-ORL",
+          "KXNBAGAME-26OCT16TORDET-DET"
+        ]
+      ],
+      [
+        25,
+        [
+          "KXCS2GAME-26OCT161200FIREHEC-FIRE",
+          "KXNBAGAME-26OCT16SACSAS-SAS"
+        ]
+      ],
+      [
+        75,
+        [
+          "KXNBAGAME-26OCT16MILIND-IND",
+          "KXNBAGAME-26OCT16MIAORL-ORL"
+        ]
+      ]
+    ],
+    "2026-10-17": [
+      [
+        75,
+        [
+          "KXUFCFIGHT-26OCT17LEBGAL-GAL",
+          "KXUFCFIGHT-26OCT17NELPER-PER"
+        ]
+      ],
+      [
+        50,
+        [
+          "KXUFCFIGHT-26OCT17NALLAN-NAL",
+          "KXNCAAFGAME-26OCT17WSUORST-ORST"
+        ]
+      ],
+      [
+        25,
+        [
+          "KXNCAAFGAME-26OCT17AUBUGA-UGA",
+          "KXNCAAFGAME-26OCT17FSUMIA-MIA"
+        ]
+      ]
+    ],
+    "2026-10-18": [
+      [
+        75,
+        [
+          "KXNFLGAME-26OCT18LACKC-KC",
+          "KXNFLRSHYDS-26OCT18LACKC-KCKWALKER9-70"
+        ]
+      ],
+      [
+        50,
+        [
+          "KXNFLPASSYDS-26OCT18DALGB-DALDPRESCOTT4-225",
+          "KXNFLREC-26OCT18DALGB-DALCLAMB88-4"
+        ]
+      ],
+      [
+        25,
+        [
+          "KXNFLGAME-26OCT18ARILAR-LAR",
+          "KXNFLRSHYDS-26OCT18BALCLE-BALDHENRY22-60"
+        ]
+      ]
+    ],
+    "2026-10-19": [
+      [
+        75,
+        [
+          "KXNFLGAME-26OCT19WASSF-SF",
+          "KXNFLPASSYDS-26OCT19WASSF-SFBPURDY13-175"
+        ]
+      ],
+      [
+        50,
+        [
+          "KXNFLREC-26OCT19WASSF-SFGKITTLE85-3",
+          "KXNFLRSHYDS-26OCT19WASSF-SFCMCCAFFREY23-40"
+        ]
+      ],
+      [
+        25,
+        [
+          "KXNFLRSHYDS-26OCT19WASSF-SFBPURDY13-10",
+          "KXNFLREC-26OCT19WASSF-SFGKITTLE85-4"
+        ]
+      ]
+    ]
+  }
+}

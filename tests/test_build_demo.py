@@ -128,3 +128,31 @@ def test_refresh_writes_review_file_and_only_optional_demo_key(monkeypatch, tmp_
     kv = type('KV', (), {'put': lambda self, key, value: writes.append((key, value))})()
     build_demo.refresh_demo(kv, output=output, now=NOW)
     assert writes == [('config:demo', config)]
+
+
+def test_archives_use_final_results_and_shared_pregame_quotes():
+    source = json.loads(build_demo.ARCHIVE_SOURCE.read_text())
+    archive = build_demo.build_archived_days(source, trials=1000)
+    assert archive['days'] == [f'2026-10-{day}' for day in range(19, 14, -1)]
+    nets = []
+    for date in archive['days']:
+        record = archive['records'][date]
+        config = record['config']
+        markets = record['snapshot']['markets']
+        assert len(config['slips']) == 3
+        assert all(len(slip['legIds']) in (2, 3) for slip in config['slips'])
+        assert all(leg['fairSource'] == 'Kalshi pregame mid' and leg['ask'] >= .70
+                   for leg in config['legs'])
+        assert all(market['result'] in ('yes', 'no') and market['settlement_ts']
+                   for market in markets.values())
+        for slip in config['slips']:
+            assert max(datetime.fromisoformat(source['markets'][ticker]['candleEnd'])
+                       for ticker in slip['legIds']) < min(
+                           datetime.fromisoformat(source['markets'][ticker]['start'])
+                           for ticker in slip['legIds'])
+        nets.append(round(sum(slip['gain'] if all(markets[ticker]['result'] == 'yes'
+                                                 for ticker in slip['legIds']) else -slip['stake']
+                              for slip in config['slips']), 2))
+    assert sum(net > 0 for net in nets) == 4
+    assert [net for net in nets if net < 0] == [-13.0]
+    assert round(sum(nets), 2) == 213.07

@@ -193,3 +193,123 @@ def test_pinnacle_match_must_start_near_the_scheduled_leg():
     assert poll_live.near_start(tonight, leg_start)
     assert not poll_live.near_start(yesterday, leg_start)
     assert poll_live.near_start({'participants': []}, leg_start)
+
+
+class DemoKV:
+    def __init__(self, config=None):
+        self.values = {'config:demo': config, 'snapshot:demo': {'date': '2026-10-21', 'markets': {}}} if config is not None else {}
+        self.writes = []
+
+    def get(self, key):
+        return self.values.get(key)
+
+    def put(self, key, value):
+        self.writes.append((key, value))
+        self.values[key] = value
+
+
+def demo_config(as_of='old', slips=None):
+    return {'asOf': as_of, 'date': '2026-10-21', 'slips': slips if slips is not None else
+            [{'number': 1, 'legIds': ['T1'], 'stake': 25, 'placed': 'placed'}], 'legs': [{'id': 'T1'}]}
+
+
+def test_demo_build_is_throttled_for_30_minutes():
+    kv = DemoKV(demo_config())
+    builds = []
+
+    def build(attempted_at):
+        builds.append(attempted_at)
+        return demo_config('new')
+
+    with patch.object(poll_live, 'build_public_demo', build), patch.object(poll_live, 'fetch_demo_markets', return_value={}):
+        poll_live.refresh_public_demo(kv, now=lambda: 0)
+        poll_live.refresh_public_demo(kv, now=lambda: 29 * 60 * 1000)
+        poll_live.refresh_public_demo(kv, now=lambda: 30 * 60 * 1000)
+    assert len(builds) == 2
+    assert [key for key, _ in kv.writes] == ['demo:last_attempt', 'demo:last_attempt']
+
+
+def test_unchanged_demo_does_not_write_config_even_with_new_as_of():
+    old = demo_config()
+    kv = DemoKV(old)
+    with patch.object(poll_live, 'build_public_demo', return_value=demo_config('new')), patch.object(poll_live, 'fetch_demo_markets', return_value={}):
+        poll_live.refresh_public_demo(kv, now=lambda: 0)
+    assert kv.values['config:demo'] is old
+    assert [key for key, _ in kv.writes] == ['demo:last_attempt']
+
+
+def test_changed_demo_writes_only_demo_config():
+    kv = DemoKV(demo_config())
+    changed = demo_config('new', slips=[{'number': 1, 'legIds': ['T1'], 'stake': 50, 'placed': 'placed'}])
+    with patch.object(poll_live, 'build_public_demo', return_value=changed), patch.object(poll_live, 'fetch_demo_markets', return_value={}):
+        poll_live.refresh_public_demo(kv, now=lambda: 0)
+    assert kv.values['config:demo'] is changed
+    assert [key for key, _ in kv.writes] == ['demo:last_attempt', 'config:demo']
+
+
+@pytest.mark.parametrize('result', [ValueError('No qualifying slips'), demo_config(slips=[])])
+def test_failed_or_empty_demo_keeps_old_config_and_does_not_break_poll(result, capsys):
+    old = demo_config()
+    kv = DemoKV(old)
+
+    def build(attempted_at):
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    with patch.object(poll_live, 'build_public_demo', build):
+        poll_live.refresh_public_demo(kv, now=lambda: 0)
+    assert kv.values['config:demo'] is old
+    assert [key for key, _ in kv.writes] == ['demo:last_attempt']
+    assert 'Demo refresh failed' in capsys.readouterr().err
+
+
+def test_main_completes_private_poll_when_demo_build_fails(capsys):
+    kv = DemoKV(demo_config())
+    private_polls = []
+    credentials = {'CF_API_TOKEN': 'token', 'CF_ACCOUNT_ID': 'account',
+                   'CF_KV_NAMESPACE_ID': 'namespace'}
+    with patch.dict(poll_live.os.environ, credentials), \
+            patch.object(poll_live, 'KV', return_value=kv), \
+            patch.object(poll_live, 'poll', side_effect=lambda client: private_polls.append(client)), \
+            patch.object(poll_live, 'build_public_demo', side_effect=ValueError('No qualifying slips')):
+        poll_live.main()
+    assert private_polls == [kv]
+    assert kv.values['config:demo']['asOf'] == 'old'
+    assert 'Live poll completed' in capsys.readouterr().out
+
+
+def test_demo_snapshot_keeps_results_when_quote_disappears():
+    config = demo_config()
+    previous = {'date': config['date'], 'markets': {'T1': {'result': 'yes', 'fetchedAt': 10}}}
+    snapshot = poll_live.demo_snapshot(config, previous, {}, 20)
+    assert snapshot['markets']['T1']['result'] == 'yes'
+    assert poll_live.demo_finished(config, snapshot)
+    assert not poll_live.demo_finished(config, {'date': config['date'], 'markets': {}})
+
+
+def test_demo_refresh_updates_quotes_even_when_builder_fails(capsys):
+    kv = DemoKV(demo_config())
+    market = {'ticker': 'T1', 'yes_bid_dollars': '0.95', 'yes_ask_dollars': '0.96',
+              'result': 'yes', 'settlement_ts': '2026-10-21T23:00:00Z'}
+    with patch.object(poll_live, 'fetch_demo_markets', return_value={'T1': market}), \
+            patch.object(poll_live, 'build_public_demo', side_effect=ValueError('No active markets')):
+        poll_live.refresh_public_demo(kv, now=lambda: 1234)
+    assert kv.values['snapshot:demo']['markets']['T1']['result'] == 'yes'
+    assert kv.values['config:demo']['asOf'] == 'old'
+    assert 'Demo refresh failed' in capsys.readouterr().err
+
+
+def test_finished_demo_archives_only_demo_keys_on_new_day():
+    old = demo_config()
+    kv = DemoKV(old)
+    kv.values['snapshot:demo'] = {'date': old['date'], 'markets': {'T1': {'result': 'yes'}}}
+    next_day = demo_config('new')
+    next_day['date'] = '2026-10-22'
+    with patch.object(poll_live, 'fetch_demo_markets', return_value={}), \
+            patch.object(poll_live, 'build_public_demo', return_value=next_day):
+        poll_live.refresh_public_demo(kv, now=lambda: 1234)
+    assert kv.values['days:demo'] == ['2026-10-21']
+    assert kv.values['day:demo:2026-10-21']['snapshot']['markets']['T1']['result'] == 'yes'
+    assert kv.values['config:demo']['date'] == '2026-10-22'
+    assert all(key.startswith(('demo:', 'snapshot:demo', 'day:demo:', 'days:demo', 'config:demo')) for key, _ in kv.writes)
