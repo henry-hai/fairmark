@@ -106,6 +106,21 @@ test('page shows a separate age or missing label for each leg', async () => {
   assert.match(timeline, /No market data yet/)
 })
 
+test('finished timeline rows fade and show a one-line date before time', async () => {
+  const legs = [
+    { name:'Won', ticker:'WON', side:'yes', start:'2026-10-21T02:00:00Z', estimated:true },
+    { name:'Lost', ticker:'LOST', side:'yes', start:'2026-10-21T02:00:00Z' }
+  ]
+  const slips = [{ name:'1', stake:'10', payout:'20', legs:['Won'] }, { name:'2', stake:'10', payout:'20', legs:['Lost'] }]
+  const document = await renderPage({ config:{ date:'2026-10-20', legs, slips }, markets:{ WON:{ result:'yes' }, LOST:{ result:'no' } }, stale:false })
+  const timeline = document.getElementById('timeline').innerHTML
+  const html = readFileSync(new URL('./page.html', import.meta.url), 'utf8')
+  assert.match(html, /\.timeline-item\.won-leg, \.timeline-item\.dead-leg \{ opacity: \.55; \}/)
+  assert.match(html, /\.time \{[^}]*white-space: nowrap/)
+  assert.match(timeline, /class="timeline-item won-leg"><div class="time">10\/20\/26 · 7:00 PM<span class="estimate">estimated<\/span>/)
+  assert.match(timeline, /class="timeline-item dead-leg"><div class="time">10\/20\/26 · 7:00 PM/)
+})
+
 test('profit tracker totals won and alive payouts and updates when a slip dies', async () => {
   const html = readFileSync(new URL('./page.html', import.meta.url), 'utf8')
   assert.ok(html.indexOf('id="profit-tracker"') < html.indexOf('id="summary"'))
@@ -175,7 +190,6 @@ test('Pinnacle live flag and start override the estimated schedule time', async 
   document.rerender({ ...data, legStatus: { Fight: { live: false, start: '2026-10-17T20:00:00Z' } } })
   assert.match(document.getElementById('timeline').innerHTML, /class="badge upcoming"/)
   document.rerender({ ...data, markets: { FIGHT: { result: 'no' } } })
-  document.clickFilter('timeline', 'dead')
   assert.match(document.getElementById('timeline').innerHTML, /class="badge dead"/)
 })
 
@@ -189,7 +203,7 @@ test('a pregame price jump keeps a leg upcoming until its start time', async () 
   assert.match(document.getElementById('timeline').innerHTML, /Pregame \(73\.5%\).*?class="badge upcoming"/)
 })
 
-test('default filters show active legs and alive slips, while toggles reveal settled rows', async () => {
+test('default filters show every status, while toggles hide settled rows', async () => {
   const legs = ['Won', 'Lost', 'Dead future', 'Shared future', 'Alive future'].map((name, index) => ({
     name, ticker: `TICKER-${index}`, side: 'yes', start: `2026-10-17T${String(17 + index).padStart(2, '0')}:00:00Z`
   }))
@@ -203,26 +217,33 @@ test('default filters show active legs and alive slips, while toggles reveal set
   let timeline = document.getElementById('timeline').innerHTML
   let slips = document.getElementById('slips').innerHTML
   assert.match(document.getElementById('timeline-filters').innerHTML, /data-filter="live" aria-pressed="true"/)
-  assert.match(document.getElementById('timeline-filters').innerHTML, /data-filter="won" aria-pressed="false"/)
+  assert.match(document.getElementById('timeline-filters').innerHTML, /data-filter="upcoming" aria-pressed="true"/)
+  assert.match(document.getElementById('timeline-filters').innerHTML, /data-filter="won" aria-pressed="true"/)
+  assert.match(document.getElementById('timeline-filters').innerHTML, /data-filter="dead" aria-pressed="true"/)
   assert.match(document.getElementById('slip-filters').innerHTML, /data-filter="alive" aria-pressed="true"/)
+  assert.match(document.getElementById('slip-filters').innerHTML, /data-filter="won" aria-pressed="true"/)
+  assert.match(document.getElementById('slip-filters').innerHTML, /data-filter="dead" aria-pressed="true"/)
+  assert.match(document.getElementById('slip-filters').innerHTML, /data-filter="cashed" aria-pressed="true"/)
   assert.match(timeline, /Shared future/)
   assert.match(timeline, /Alive future/)
-  assert.doesNotMatch(timeline, /Dead future|Lost \(0\.0%\)|Won \(100\.0%\)/)
+  assert.match(timeline, /class="timeline-item won-leg"[^>]*>.*?Won \(100\.0%\)/)
+  assert.match(timeline, /Dead future \(quote unavailable\).*?class="badge dead"/)
+  assert.match(timeline, /Lost \(0\.0%\).*?class="badge dead"/)
+  assert.ok(timeline.indexOf('Won (100.0%)') < timeline.indexOf('Lost (0.0%)'))
   assert.match(slips, /id="slip-alive"/)
-  assert.doesNotMatch(slips, /id="slip-dead/)
+  assert.ok(slips.indexOf('id="slip-alive"') < slips.indexOf('id="slip-dead%20first"'))
+  assert.equal((slips.match(/<details data-expand-key=/g) || []).length, 2)
+  assert.doesNotMatch(slips, /<details open/)
+  assert.match(slips, /<summary>#dead first <span class="badge dead">dead<\/span><\/summary>/)
   document.clickFilter('timeline', 'won')
   document.clickFilter('timeline', 'dead')
   document.clickFilter('slips', 'dead')
   timeline = document.getElementById('timeline').innerHTML
   slips = document.getElementById('slips').innerHTML
-  assert.match(timeline, /class="timeline-item won-leg"[^>]*>.*?Won \(100\.0%\)/)
-  assert.match(timeline, /Dead future \(quote unavailable\).*?class="badge dead"/)
-  assert.match(timeline, /Lost \(0\.0%\).*?class="badge dead"/)
-  assert.ok(timeline.indexOf('Won (100.0%)') < timeline.indexOf('Lost (0.0%)'))
-  assert.ok(slips.indexOf('id="slip-alive"') < slips.indexOf('id="slip-dead%20first"'))
-  assert.equal((slips.match(/<details data-expand-key=/g) || []).length, 2)
-  assert.doesNotMatch(slips, /<details open/)
-  assert.match(slips, /<summary>#dead first <span class="badge dead">dead<\/span><\/summary>/)
+  assert.doesNotMatch(timeline, /Dead future|Lost \(0\.0%\)|Won \(100\.0%\)/)
+  assert.match(timeline, /Shared future|Alive future/)
+  assert.match(slips, /id="slip-alive"/)
+  assert.doesNotMatch(slips, /id="slip-dead/)
 })
 
 test('timeline orders live then upcoming by start and counts only alive stakes', async () => {
@@ -241,16 +262,13 @@ test('timeline orders live then upcoming by start and counts only alive stakes',
   ]
   const markets = { 'T-4': { result: 'yes' }, 'T-5': { result: 'no' } }
   const document = await renderPage({ config: { date: config.date, legs, slips }, markets, stale: true }, { now: Date.parse('2026-10-17T19:00:00Z') })
-  let timeline = document.getElementById('timeline').innerHTML
+  const timeline = document.getElementById('timeline').innerHTML
   const positions = ['Earlier live', 'Later live', 'Near upcoming', 'Far upcoming'].map(name => timeline.indexOf(`<strong>${name} (`))
   assert.ok(positions.every((position, index) => position >= 0 && (index === 0 || position > positions[index - 1])))
   assert.match(timeline, /Earlier live \(quote unavailable\).*?In 4 alive slips, \$780 riding/)
   const rows = document.getElementById('slips').innerHTML
   assert.ok(rows.indexOf('id="slip-shared%201"') < rows.indexOf('id="slip-near"'))
   assert.ok(rows.indexOf('id="slip-near"') < rows.indexOf('id="slip-far"'))
-  document.clickFilter('timeline', 'won')
-  document.clickFilter('timeline', 'dead')
-  timeline = document.getElementById('timeline').innerHTML
   assert.ok(timeline.indexOf('Far upcoming') < timeline.indexOf('Won (100.0%)'))
   assert.ok(timeline.indexOf('Won (100.0%)') < timeline.indexOf('Lost (0.0%)'))
 })
@@ -286,12 +304,10 @@ test('timeline sorts by instant within each status and shows nearly won as won',
   const slips = legs.map((leg, index) => ({ name: String(index + 1), stake: '1', legs: [leg.name] }))
   const markets = { M: { yes_bid_dollars: '0.97', yes_ask_dollars: '0.99' }, W1: { result: 'yes' }, W2: { result: 'yes' } }
   const document = await renderPage({ config: { date: config.date, legs, slips }, markets, stale: false }, { now: Date.parse('2026-10-18T01:00:00Z') })
-  document.clickFilter('timeline', 'won')
   const timeline = document.getElementById('timeline').innerHTML
   const positions = ['Team D', 'Future 1', 'Future 2', 'Team E', 'Later won', 'Earlier won'].map(name => timeline.indexOf(`<strong>${name} (`))
   assert.ok(positions.every((position, index) => position >= 0 && (index === 0 || position > positions[index - 1])))
   assert.match(timeline, /Team E \(98\.0%\)<\/strong><span class="badge won">won \(nearly\)/)
-  document.clickFilter('slips', 'won')
   assert.match(document.getElementById('slips').innerHTML, /id="slip-2".*?class="badge won"/)
 })
 
@@ -320,12 +336,8 @@ test('live quote thresholds settle slips and remove nearly lost exposure', async
   assert.match(document.getElementById('summary').innerHTML, /Payout locked in<\/span><strong>\$35\.00/)
   assert.match(document.getElementById('slips').innerHTML, /id="slip-above".*?Legs hit">0\/1.*?class="badge alive"/)
   assert.match(document.getElementById('slips').innerHTML, /id="slip-below".*?Legs hit">0\/1.*?class="badge alive"/)
-  document.clickFilter('slips', 'won')
-  document.clickFilter('slips', 'dead')
   assert.match(document.getElementById('slips').innerHTML, /id="slip-won".*?Legs hit">1\/1.*?class="badge won"/)
   assert.match(document.getElementById('slips').innerHTML, /id="slip-dead".*?class="badge dead"/)
-  document.clickFilter('timeline', 'won')
-  document.clickFilter('timeline', 'dead')
   const timeline = document.getElementById('timeline').innerHTML
   assert.match(timeline, /Near loss \(2\.0%\)<\/strong><span class="badge lost">lost \(nearly\)<\/span>.*?In 0 alive slips, \$0 riding/)
   assert.match(timeline, /Near win \(98\.0%\)<\/strong><span class="badge won">won \(nearly\)/)
@@ -349,9 +361,6 @@ test('every slip shows state chips and dead slips identify losing legs', async (
     'CHIP-4': { yes_bid_dollars: '0.54', yes_ask_dollars: '0.56' }
   }
   const document = await renderPage({ config: { date: config.date, legs, slips, cashouts: { cashed: { amount: '2.50', remainingFraction: '0' } } }, markets, stale: false }, { now: Date.parse('2026-10-17T19:00:00Z') })
-  document.clickFilter('slips', 'won')
-  document.clickFilter('slips', 'dead')
-  document.clickFilter('slips', 'cashed')
   const rows = document.getElementById('slips').innerHTML
   assert.match(rows, /id="slip-alive".*?leg-chip won.*?Won.*?✓.*?leg-chip won.*?Near won.*?✓.*?leg-chip live.*?Live.*?55\.0%.*?leg-chip upcoming.*?Upcoming.*?3:00 PM.*?Legs hit">2\/4/)
   assert.match(rows, /id="slip-won".*?Legs hit">2\/2.*?class="badge won"/)
@@ -378,7 +387,6 @@ test('full and partial cash-outs reduce exposure and count received money', asyn
   assert.match(document.getElementById('summary').innerHTML, /Payout locked in<\/span><strong>\$42\.50/)
   assert.match(document.getElementById('summary').innerHTML, /Max still possible<\/span><strong>\$120\.00/)
   assert.match(document.getElementById('timeline').innerHTML, /Open \(quote unavailable\).*?In 2 alive slips, \$60 riding/)
-  document.clickFilter('slips', 'cashed')
   assert.match(document.getElementById('slips').innerHTML, /id="slip-sample".*?Profit">−\$9\.50.*?badge cashed/)
   document.rerender({ config: { date: config.date, legs, slips, cashouts }, markets: { L: { result: 'no' }, O: { result: 'yes' } }, stale: false })
   tracker = document.getElementById('profit-tracker').innerHTML
@@ -395,7 +403,6 @@ test('expanded slip state survives rerenders, filter changes, reloads, and stora
   const data = { config: pageConfig, markets: { [config.legs[0].ticker]: { result: 'no' } }, stale: false }
   const storage = memoryStorage()
   const first = await renderPage(data, { storage })
-  first.clickFilter('slips', 'dead')
   first.toggleDetail('slip:4', true)
   first.rerender(data)
   assert.match(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
@@ -410,7 +417,6 @@ test('expanded slip state survives rerenders, filter changes, reloads, and stora
   assert.doesNotMatch(second.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
   const broken = { getItem() { throw new Error('blocked') }, setItem() { throw new Error('blocked') } }
   const fallback = await renderPage(data, { storage: broken })
-  fallback.clickFilter('slips', 'dead')
   fallback.toggleDetail('slip:16', true)
   fallback.rerender(data)
   assert.match(fallback.getElementById('slips').innerHTML, /data-expand-key="slip:16" open/)
@@ -421,15 +427,18 @@ test('filters persist and storage failures do not break rendering', async () => 
   const storage = memoryStorage()
   const first = await renderPage(data, { storage })
   first.clickFilter('timeline', 'upcoming')
+  first.clickFilter('timeline', 'dead')
   first.clickFilter('slips', 'alive')
   const second = await renderPage(data, { storage })
   assert.match(second.getElementById('timeline-filters').innerHTML, /data-filter="upcoming" aria-pressed="false"/)
+  assert.match(second.getElementById('timeline-filters').innerHTML, /data-filter="dead" aria-pressed="false"/)
   assert.match(second.getElementById('slip-filters').innerHTML, /data-filter="alive" aria-pressed="false"/)
   assert.equal(second.getElementById('timeline').innerHTML, '')
   assert.equal(second.getElementById('slips').innerHTML, '')
   const broken = { getItem() { throw new Error('blocked') }, setItem() { throw new Error('blocked') } }
   const fallback = await renderPage(data, { storage: broken })
   fallback.clickFilter('timeline', 'upcoming')
+  fallback.clickFilter('timeline', 'dead')
   assert.equal(fallback.getElementById('timeline').innerHTML, '')
 })
 
@@ -479,6 +488,17 @@ test('all-time net includes a cashed-out archive and a day still riding', async 
   assert.deepEqual(writes, [])
 })
 
+test('daily results and tracker cards keep the demo order', async () => {
+  const document = await renderPage({ config, markets: {}, stale: true })
+  const record = document.getElementById('track-record').innerHTML
+  const tracker = document.getElementById('profit-tracker').innerHTML
+  const summary = document.getElementById('summary').innerHTML
+  assert.match(record, /<summary>Daily results<\/summary>/)
+  assert.deepEqual([...tracker.matchAll(/<span>(Profit now|Still riding|Max profit)<\/span>/g)].map(match => match[1]), ['Profit now', 'Still riding', 'Max profit'])
+  assert.deepEqual([...summary.matchAll(/<span>(Staked|Payout locked in|Max still possible)<\/span>/g)].map(match => match[1]), ['Staked', 'Payout locked in', 'Max still possible'])
+  assert.match(tracker, /Still riding<\/span><strong>.*?<\/strong><small class="detail">Max payout /)
+})
+
 test('slips show placed and settled times, day tabs and lists', async () => {
   const legs = ['Won', 'Other', 'Lost'].map((name, index) => ({ name, ticker: `T-${index}`, side: 'yes', start: '2026-10-17T17:00:00Z' }))
   const slips = [
@@ -492,8 +512,6 @@ test('slips show placed and settled times, day tabs and lists', async () => {
   }
   const lists = { ban: ['Team B'], doghouse: ['Azure'], hateWatch: [] }
   const document = await renderPage({ config: { date: config.date, legs, slips, lists }, markets, stale: false, archived: true, days: ['2026-10-17', '2026-10-18'] })
-  document.clickFilter('slips', 'won')
-  document.clickFilter('slips', 'dead')
   const rows = document.getElementById('slips').innerHTML
   assert.match(rows, /id="slip-won".*?Placed Oct 17, 6:40 AM · Settled Oct 17, 8:10 PM/)
   assert.match(rows, /id="slip-dead".*?Settled Oct 17, 1:05 PM/)
