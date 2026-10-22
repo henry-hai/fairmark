@@ -179,23 +179,14 @@ test('Pinnacle live flag and start override the estimated schedule time', async 
   assert.match(document.getElementById('timeline').innerHTML, /class="badge dead"/)
 })
 
-test('price movement must exceed eight points from the first price of the day', async () => {
-  const legs = [
-    { name: 'Moved', ticker: 'M', side: 'yes', start: '2026-10-17T22:00:00Z' },
-    { name: 'Boundary', ticker: 'B', side: 'no', start: '2026-10-17T22:00:00Z' }
-  ]
+test('a pregame price jump keeps a leg upcoming until its start time', async () => {
+  const legs = [{ name: 'Pregame', ticker: 'P', side: 'yes', start: '2026-10-17T22:00:00Z' }]
   const pageConfig = { date: config.date, legs, slips: legs.map(leg => ({ name: leg.name, stake: '10', payout: '20', legs: [leg.name] })) }
   const data = { config: pageConfig, markets: {
-    M: { yes_bid_dollars: '0.59', yes_ask_dollars: '0.61' },
-    B: { no_bid_dollars: '0.66', no_ask_dollars: '0.68' }
-  }, firstPrices: { Moved: 0.50, Boundary: 0.59 }, stale: false }
+    P: { yes_bid_dollars: '0.73', yes_ask_dollars: '0.74' }
+  }, firstPrices: { Pregame: 0.60 }, stale: false }
   const document = await renderPage(data, { now: Date.parse('2026-10-17T19:00:00Z') })
-  let timeline = document.getElementById('timeline').innerHTML
-  assert.match(timeline, /Moved \(60\.0%\).*?class="badge live"/)
-  assert.match(timeline, /Boundary \(67\.0%\).*?class="badge upcoming"/)
-  document.rerender({ ...data, firstPrices: {} })
-  timeline = document.getElementById('timeline').innerHTML
-  assert.doesNotMatch(timeline, /class="badge live"/)
+  assert.match(document.getElementById('timeline').innerHTML, /Pregame \(73\.5%\).*?class="badge upcoming"/)
 })
 
 test('default filters show active legs and alive slips, while toggles reveal settled rows', async () => {

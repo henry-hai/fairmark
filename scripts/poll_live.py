@@ -222,10 +222,13 @@ def poll(kv, *, now=lambda: int(time.time() * 1000)):
             fetched = {market['ticker']: market for market in payload['markets']
                        if isinstance(market, dict) and market.get('ticker') in batch}
             if fetched:
-                snapshot = merge_snapshot(config, snapshot, fetched, now())
-                snapshot['legStatus'].update(live_status)
-                kv.put('snapshot:current', snapshot)
-        kv.delete('poll:error')
+                updated = merge_snapshot(config, snapshot, fetched, now())
+                updated['legStatus'].update(live_status)
+                if updated != snapshot:
+                    kv.put('snapshot:current', updated)
+                snapshot = updated
+        if kv.get('poll:error') is not None:
+            kv.delete('poll:error')
     except PollError as error:
         kv.put('poll:error', {'at': now(), 'message': str(error)})
         raise
@@ -284,6 +287,14 @@ def demo_finished(config, snapshot):
 def refresh_public_demo(kv, *, now=lambda: int(time.time() * 1000)):
     try:
         attempted_at = now()
+        previous = kv.get('config:demo')
+        previous_snapshot = kv.get('snapshot:demo')
+        if isinstance(previous, dict) and previous.get('slips'):
+            current_markets = fetch_demo_markets(previous)
+            updated_snapshot = demo_snapshot(previous, previous_snapshot, current_markets, attempted_at)
+            if updated_snapshot != previous_snapshot:
+                kv.put('snapshot:demo', updated_snapshot)
+                previous_snapshot = updated_snapshot
         previous_attempt = kv.get('demo:last_attempt')
         previous_at = previous_attempt.get('at') if isinstance(previous_attempt, dict) else None
         if isinstance(previous_at, (int, float)):
@@ -291,13 +302,6 @@ def refresh_public_demo(kv, *, now=lambda: int(time.time() * 1000)):
             if 0 <= elapsed < DEMO_INTERVAL_MS:
                 return
         kv.put('demo:last_attempt', {'at': attempted_at})
-        previous = kv.get('config:demo')
-        previous_snapshot = kv.get('snapshot:demo')
-        if isinstance(previous, dict) and previous.get('slips'):
-            current_markets = fetch_demo_markets(previous)
-            previous_snapshot = demo_snapshot(previous, previous_snapshot, current_markets, attempted_at)
-            if previous_snapshot != kv.get('snapshot:demo'):
-                kv.put('snapshot:demo', previous_snapshot)
         config = build_public_demo(attempted_at)
         slips = config.get('slips') if isinstance(config, dict) else None
         if not isinstance(slips, list) or not slips or any(

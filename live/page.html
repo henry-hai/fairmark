@@ -185,7 +185,7 @@
       const priceMoved = probability !== null && typeof firstPrice === 'number' &&
         Math.abs(Math.round(probability * 10000) - Math.round(firstPrice * 10000)) > 800
       const state = result === 'yes' || result === 'no' ? (result === leg.side ? 'won' : 'lost') :
-        legStatus[leg.name]?.live === true || Date.now() >= Date.parse(legStatus[leg.name]?.start || leg.start) || priceMoved ? 'live' : 'upcoming'
+        legStatus[leg.name]?.live === true || Date.now() >= Date.parse(legStatus[leg.name]?.start || leg.start) || (priceMoved && !Number.isFinite(Date.parse(legStatus[leg.name]?.start || leg.start))) ? 'live' : 'upcoming'
       const nearly = state === 'live' && probability !== null ? (probability <= 0.02 ? 'lost' : probability >= 0.98 ? 'won' : null) : null
       states[leg.name] = nearly || state
     }
@@ -250,7 +250,7 @@
       const priceMoved = probability !== null && typeof firstPrice === 'number' &&
         Math.abs(Math.round(probability * 10000) - Math.round(firstPrice * 10000)) > 800
       const state = result === 'yes' || result === 'no' ? (result === leg.side ? 'won' : 'lost') :
-        legStatus[leg.name]?.live === true || Date.now() >= Date.parse(startFor(leg)) || priceMoved ? 'live' : 'upcoming'
+        legStatus[leg.name]?.live === true || Date.now() >= Date.parse(startFor(leg)) || (priceMoved && !Number.isFinite(Date.parse(startFor(leg)))) ? 'live' : 'upcoming'
       nearly[leg.name] = state === 'live' && probability !== null ? (probability <= 0.02 ? 'lost' : probability >= 0.98 ? 'won' : null) : null
       states[leg.name] = nearly[leg.name] || state
     }
