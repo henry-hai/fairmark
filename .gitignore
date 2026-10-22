@@ -9,6 +9,7 @@ keys/
 # Local notes
 HANDOFF.md
 *_project_context.md
+.claude/
 
 # Python
 __pycache__/
