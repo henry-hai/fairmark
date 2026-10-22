@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bet Schedule</title>
   <style>
-    :root { color-scheme: light dark; --bg: #f5f6fa; --panel: #fff; --text: #182130; --muted: #5b6574; --line: #dce1e8; --accent: #165ab8; --won: #157249; --lost: #b23543; --live: #9b5a0a; --upcoming: #566276; --cashed: #9b5a0a; }
-    @media (prefers-color-scheme: dark) { :root { --bg: #10151e; --panel: #1b2330; --text: #eef2f8; --muted: #b0bac7; --line: #344052; --accent: #87b8ff; --won: #6fdaad; --lost: #ff8992; --live: #ffc477; --upcoming: #bcc8d9; --cashed: #f4cc7b; } }
+    :root { color-scheme: light dark; --bg: #f5f6fa; --panel: #fff; --text: #182130; --muted: #5b6574; --line: #dce1e8; --accent: #165ab8; --won: #157249; --lost: #b23543; --live: #9b5a0a; --upcoming: #566276; --cashed: #9b5a0a; --profit-glow: 0 0 8px rgb(21 114 73 / 30%); }
+    @media (prefers-color-scheme: dark) { :root { --bg: #10151e; --panel: #1b2330; --text: #eef2f8; --muted: #b0bac7; --line: #344052; --accent: #87b8ff; --won: #6fdaad; --lost: #ff8992; --live: #ffc477; --upcoming: #bcc8d9; --cashed: #f4cc7b; --profit-glow: 0 0 8px rgb(111 218 173 / 30%); } }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -23,8 +23,9 @@
     .profit-tracker .fee { grid-column: 1 / -1; color: var(--muted); font-size: .82rem; }
     .positive { color: var(--won); }
     .negative { color: var(--lost); }
+    .profit-value.positive { text-shadow: var(--profit-glow); }
     .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
-    .stat span { display: block; color: var(--muted); font-size: .82rem; }
+    .stat span { display: block; color: var(--muted); font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
     .stat strong { display: block; font-size: clamp(1rem, 3vw, 1.38rem); margin-top: 5px; overflow-wrap: anywhere; }
     .timeline { list-style: none; margin: 0; padding: 0; }
     .filters { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 10px; }
@@ -33,8 +34,8 @@
     #slip-filters [data-filter="cashed"] { color: var(--cashed); }
     #slip-filters [data-filter="cashed"][aria-pressed="true"] { border-color: var(--cashed); }
     .filter-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-    .timeline-item { display: grid; grid-template-columns: 95px minmax(0, 1fr); gap: 10px; border-bottom: 1px solid var(--line); padding: 12px 2px; }
-    .timeline-item.won-leg { opacity: .55; }
+    .timeline-item { display: grid; grid-template-columns: 175px minmax(0, 1fr); gap: 10px; border-bottom: 1px solid var(--line); padding: 12px 2px; }
+    .timeline-item.won-leg, .timeline-item.dead-leg { opacity: .55; }
     .time { font-weight: 700; font-size: .9rem; white-space: nowrap; }
     .estimate { display: block; font-weight: 400; font-size: .75rem; color: var(--muted); }
     .leg { min-width: 0; }
@@ -42,7 +43,7 @@
     .references { color: var(--muted); font-size: .83rem; margin-top: 3px; }
     .references a { color: var(--accent); margin-right: 6px; }
     .badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-size: .75rem; font-weight: 700; text-transform: uppercase; vertical-align: 2px; }
-    .won { color: var(--won); } .lost, .dead { color: var(--lost); } .live { color: var(--live); } .upcoming, .alive { color: var(--upcoming); } .cashed { color: var(--cashed); }
+    .won { color: var(--won); } .lost, .dead { color: var(--lost); } .live { color: var(--live); } .upcoming { color: var(--upcoming); } .alive { color: var(--won); } .cashed { color: var(--cashed); }
     table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
     th, td { text-align: left; padding: 11px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
     thead th { color: var(--muted); font-size: .78rem; font-weight: 700; }
@@ -79,6 +80,7 @@
     .lists .stat small { display: block; color: var(--muted); font-size: .78rem; }
     @media (max-width: 680px) { .lists { grid-template-columns: 1fr; } }
     @media (max-width: 680px) {
+      .timeline-item { grid-template-columns: 1fr; gap: 4px; }
       .profit-tracker { grid-template-columns: 1fr 1fr; }
       .summary { grid-template-columns: 1fr 1fr; }
       .summary .stat:last-child { grid-column: 1 / -1; }
@@ -92,7 +94,7 @@
       .slip-id { grid-column: 1 / -1; font-size: 1.05rem; }
       td::before { content: attr(data-label); display: block; color: var(--muted); font-size: .75rem; }
     }
-    @media (max-width: 380px) { .timeline-item { grid-template-columns: 78px minmax(0, 1fr); gap: 8px; } .time { font-size: .82rem; } .stat { padding: 10px; } .badge { margin-left: 4px; } }
+    @media (max-width: 380px) { .time { font-size: .82rem; } .stat { padding: 10px; } .badge { margin-left: 4px; } }
   </style>
 </head>
 <body>
@@ -113,6 +115,7 @@
   const profitClass = value => value === null ? '' : value < 0 ? 'negative' : value > 0 ? 'positive' : ''
   const ridingMoney = value => value % 100 === 0 ? '$' + (value / 100).toLocaleString('en-US') : money(value)
   const pacific = value => new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
+  const timelineStamp = value => new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: '2-digit', day: '2-digit', year: '2-digit', hour: 'numeric', minute: '2-digit' }).format(new Date(value)).replace(', ', ' · ')
   const stamp = value => new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
   const dayLabel = value => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(value + 'T12:00:00Z'))
   const settledAt = market => market?.result ? Date.parse(market.settlement_ts || market.close_time) : NaN
@@ -120,7 +123,7 @@
   let selectedDay = null
   const badge = (status, label = status) => `<span class="badge ${status}">${label}</span>`
   const localData = /* LOCAL_DATA */ null
-  const filterDefaults = { timeline: { live: true, upcoming: true, won: false, dead: false }, slips: { alive: true, won: false, dead: false, cashed: false } }
+  const filterDefaults = { timeline: { live: true, upcoming: true, won: true, dead: true }, slips: { alive: true, won: true, dead: true, cashed: true } }
   const filters = { timeline: { ...filterDefaults.timeline }, slips: { ...filterDefaults.slips } }
   const expanded = new Map()
   try {
@@ -210,7 +213,7 @@
     const nets = days.map(day => ({ date: day.date, net: dailyNet(day) }))
     const allTime = nets.some(day => day.net === null) ? null : nets.reduce((sum, day) => sum + day.net, 0)
     const rows = nets.map(day => `<li><span>${escapeHtml(day.date)}</span><span class="${profitClass(day.net)}">${profitValue(day.net)}</span></li>`).join('')
-    document.getElementById('track-record').innerHTML = `<strong>All-time net ${profitValue(allTime)}</strong> · ${nets.length} ${nets.length === 1 ? 'day' : 'days'} tracked<details data-expand-key="track-record"${expanded.get('track-record') ? ' open' : ''}><summary>By day</summary><ul>${rows}</ul></details>`
+    document.getElementById('track-record').innerHTML = `<strong>All-time net ${profitValue(allTime)}</strong> · ${nets.length} ${nets.length === 1 ? 'day' : 'days'} tracked<details data-expand-key="track-record"${expanded.get('track-record') ? ' open' : ''}><summary>Daily results</summary><ul>${rows}</ul></details>`
   }
 
   function render(data) {
@@ -313,7 +316,7 @@
       const fraction = cashout ? Number(cashout.remainingFraction) : 1
       const remainingPayout = fraction === 0 ? 0 : payout === null ? null : Math.round(payout * fraction)
       const profit = status === 'dead' || status === 'cashed' ? received - stake : remainingPayout === null ? null : received + remainingPayout - stake
-      const profitLabel = profit === null ? 'Not entered' : status === 'alive' ? `Up to ${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}` : `${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}`
+      const profitLabel = profit === null ? 'Not entered' : status === 'alive' ? `<span class="profit-value ${profit < 0 ? 'negative' : 'positive'}">Up to ${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}</span>` : `${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}`
       const hit = slip.legs.filter(name => states[name] === 'won').length
       const legTimes = slip.legs.map(name => settledAt(markets[legsByName[name]?.ticker]))
       const finished = status === 'won' && legTimes.every(Number.isFinite) ? Math.max(...legTimes) :
@@ -340,7 +343,7 @@
       const riding = aliveRefs.reduce((total, ref) => total + ref.stake, 0)
       const links = aliveRefs.map(ref => `<a href="#slip-${encodeURIComponent(ref.name)}">#${escapeHtml(ref.name)}</a>`).join(' ')
       const displayStatus = nearly[leg.name] || state
-      return `<li class="timeline-item${state === 'won' ? ' won-leg' : ''}"><div class="time">${escapeHtml(pacific(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding. ${ageLabel}${links ? `. Slips ${links}` : ''}</div></div></li>`
+      return `<li class="timeline-item${state === 'won' || state === 'dead' ? ` ${state}-leg` : ''}"><div class="time">${escapeHtml(timelineStamp(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding. ${ageLabel}${links ? `. Slips ${links}` : ''}</div></div></li>`
     }).join('')
   }
 

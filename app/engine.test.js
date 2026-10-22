@@ -99,7 +99,7 @@ test('demo snapshot publishes only slip leg quotes and final results', async () 
   assert.ok(!JSON.stringify(body).includes('private'))
 })
 
-function page(data = { ...sample, markets:snapshot.markets, days:[sample.date], archived:false }) {
+function page(data = { ...sample, markets:snapshot.markets, days:[sample.date], archived:false }, storage = { getItem() { return null }, setItem() {} }) {
   const html = readFileSync(new URL('./public/index.html', import.meta.url), 'utf8')
   const script = html.match(/<script>([\s\S]*?)<\/script>/)[1]
   const listeners = {}, elements = new Map()
@@ -108,14 +108,77 @@ function page(data = { ...sample, markets:snapshot.markets, days:[sample.date], 
     return elements.get(id)
   }
   const document = { getElementById:get, documentElement:{ getAttribute() { return null }, setAttribute() {} } }
-  runInNewContext(script, { document, localStorage:{ getItem() { return null }, setItem() {} }, Intl, Date, fetch:async () => ({ ok:true, json:async () => data }), setInterval() {}, CSS:{ escape:id => id } })
-  return { html, get, listeners }
+  const context = { document, localStorage:storage, Intl, Date, fetch:async () => ({ ok:true, json:async () => data }), setInterval() {}, CSS:{ escape:id => id } }
+  runInNewContext(script + '\n globalThis.rerender = render', context)
+  return { html, get, listeners, rerender:() => context.rerender(data) }
 }
+
+test('finished timeline rows fade and dates stay on one line', async () => {
+  const data = { ...sample, markets:{
+    'KXNFLREC-ONE':{ result:'yes' }, 'KXUFCFIGHT-TWO':{ result:'no' }
+  }, days:[sample.date], archived:true }
+  const { html, get } = page(data)
+  await new Promise(resolve => setImmediate(resolve))
+  const rendered = get('content').innerHTML
+  assert.match(html, /\.timeline-item\.won-leg,\.timeline-item\.dead-leg \{ opacity:\.55 \}/)
+  assert.match(html, /\.timeline-item time \{[^}]*white-space:nowrap/)
+  assert.match(rendered, /class="timeline-item won-leg"><time>10\/22\/26 · 3:00 PM<\/time>/)
+  assert.match(rendered, /class="timeline-item dead-leg"><time>10\/23\/26 · 3:00 PM<\/time>/)
+})
+
+test('zero demo profit has no positive class', async () => {
+  const data = structuredClone(sample)
+  data.slips[0].totalPayout = data.slips[0].stake
+  data.markets = { 'KXNFLREC-ONE':{ result:'yes' }, 'KXUFCFIGHT-TWO':{ result:'yes' } }
+  data.days = [data.date]
+  data.archived = true
+  const { get } = page(data)
+  await new Promise(resolve => setImmediate(resolve))
+  const rendered = get('content').innerHTML
+  assert.match(rendered, /Day profit<\/span><strong class="">\+\$0\.00/)
+  assert.match(rendered, /Net profit, all days<\/span><strong class="">\+\$0\.00/)
+  assert.match(rendered, /class="profit-value ">\+\$0\.00/)
+})
+
+test('dead demo slips show losing legs and keep their own expanded state', async () => {
+  const data = structuredClone(sample)
+  data.slips.push({ ...data.slips[0], number:2, legIds:['KXUFCFIGHT-TWO'] })
+  data.markets = { 'KXNFLREC-ONE':{ result:'yes' }, 'KXUFCFIGHT-TWO':{ result:'no' } }
+  data.days = [data.date]
+  data.archived = true
+  const values = new Map()
+  const storage = { getItem:key => values.get(key) ?? null, setItem:(key, value) => values.set(key, value) }
+  const { html, get, listeners, rerender } = page(data, storage)
+  await new Promise(resolve => setImmediate(resolve))
+  let rendered = get('content').innerHTML
+  assert.match(html, /\.leg-chip\.lost \.leg-name \{ text-decoration:line-through \}/)
+  assert.match(rendered, /id="slip-1".*?<details data-expand-key="slip:1"><summary>#1 <span class="badge dead">dead<\/span><\/summary>.*?leg-chip lost killer.*?Killed slip/)
+  listeners.toggle({ target:{ matches:() => true, dataset:{ expandKey:'slip:1' }, open:true } })
+  rerender()
+  rendered = get('content').innerHTML
+  assert.match(rendered, /data-expand-key="slip:1" open/)
+  assert.doesNotMatch(rendered, /data-expand-key="slip:2" open/)
+  const reloaded = page(data, storage)
+  await new Promise(resolve => setImmediate(resolve))
+  assert.match(reloaded.get('content').innerHTML, /data-expand-key="slip:1" open/)
+})
+
+test('archived net and daily list exclude later days', async () => {
+  const entry = (date, amount) => ({ ...structuredClone(sample), date, slips:[{ ...sample.slips[0], cashout:{ amount, remainingFraction:0 } }], markets:{} })
+  const data = { ...entry('2026-10-20', 120), archived:true, days:['2026-10-19','2026-10-20','2026-10-21'], history:[entry('2026-10-21', 130), entry('2026-10-19', 110), entry('2026-10-20', 120)] }
+  const { get } = page(data)
+  await new Promise(resolve => setImmediate(resolve))
+  const record = get('content').innerHTML.match(/<div class="metric archive-net">[\s\S]*?<\/details><\/div>/)?.[0]
+  assert.match(record, /Net profit, all days.*\+\$30\.00.*2 finalized days/)
+  assert.match(record, /2026-10-19.*2026-10-20/)
+  assert.doesNotMatch(record, /2026-10-21/)
+})
 
 test('page renders summary, timeline, slips, engine, checker and public palette', async () => {
   const { html, get } = page(); await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
-  for (const expected of ['Profit now','Still riding','Max profit','Staked','Payout locked in','Max still possible','Timeline','Slips','Cashed out','Placed','Price versus fair','How it works','Chance the day ends in profit','Derived from Pinnacle']) assert.ok(rendered.includes(expected), expected)
+  for (const expected of ['Profit now','Still riding','Max profit','Staked','Payout locked in','Max still possible','Timeline','Slips','Cashed out','Placed','Price versus fair','How it works','Chance of a profitable day','100,000 trials','Derived from Pinnacle']) assert.ok(rendered.includes(expected), expected)
+  assert.ok(!rendered.includes('Live model ·'))
   assert.ok(!rendered.includes('Unused') && !rendered.includes('Lists'))
   for (const token of ['#091321','#5ff5c8','#ff7b8a','30%']) assert.ok(html.includes(token))
 })
