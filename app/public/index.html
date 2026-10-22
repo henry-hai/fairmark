@@ -96,6 +96,8 @@
     .badge.dead,.leg-chip.lost { color:var(--lost) }
     .badge.live,.leg-chip.live { color:var(--live) }
     .badge.upcoming,.leg-chip.upcoming,.badge.alive { color:var(--upcoming) }
+    .badge.alive,.slips-table .profit-value.positive { text-shadow:var(--indicator-glow-positive) }
+    .slips-table .profit-value.negative { text-shadow:var(--indicator-glow-negative) }
     .badge.cashed,.cashout-detail { color:var(--cashed) }
     .slips-table th:first-child { min-width:235px }
     .slips-table td,.slips-table th { vertical-align:top }
@@ -136,7 +138,7 @@
     </section>
     <div id="content" aria-live="polite"></div>
   </main>
-  <footer>Fairmark models hypothetical entries. Prices can change. Slip payouts are estimates from leg asks and the standard taker fee formula, not exchange combo quotes. No order is placed.</footer>
+  <footer>Demo with hypothetical entries. No orders are placed. Not financial advice.</footer>
 </div>
 <script>
   const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
@@ -283,7 +285,7 @@
       const finalAt = slip.status === 'won' ? Math.max(...results.map(m => Date.parse(m.settlement_ts || m.close_time))) : slip.status === 'dead' ? Math.min(...results.filter(m => String(m.result).toLowerCase() === 'no').map(m => Date.parse(m.settlement_ts || m.close_time))) : NaN
       if (Number.isFinite(finalAt)) times.push(`Settled ${stamp(finalAt)}`)
       if (slip.status === 'cashed' && slip.cashout?.at) times.push(`Cashed out ${stamp(slip.cashout.at)}`)
-      return `<tr id="slip-${slip.number}"><th scope="row" class="slip-id">#${slip.number}<small class="slip-times">${escapeHtml(times.join(' · '))}</small>${legChips(slip)}${slip.cashout ? `<small class="cashout-detail">Cashed out ${money(received)}${fraction ? `, ${pct(fraction)} still riding` : ''}</small>` : ''}</th><td data-label="Stake">${money(slip.stake)}</td><td data-label="Max payout">${money(payout)}</td><td data-label="Profit">${slip.status === 'alive' ? 'Up to ' : ''}${signed(gain)}</td><td data-label="Legs hit">${slip.legIds.filter(id => state[id] === 'won').length}/${slip.legIds.length}</td><td data-label="Status">${badge(slip.status, slip.status === 'cashed' ? 'Cashed out' : slip.status)}</td></tr>`
+      return `<tr id="slip-${slip.number}"><th scope="row" class="slip-id">#${slip.number}<small class="slip-times">${escapeHtml(times.join(' · '))}</small>${legChips(slip)}${slip.cashout ? `<small class="cashout-detail">Cashed out ${money(received)}${fraction ? `, ${pct(fraction)} still riding` : ''}</small>` : ''}</th><td data-label="Stake">${money(slip.stake)}</td><td data-label="Max payout">${money(payout)}</td><td data-label="Profit">${slip.status === 'alive' ? 'Up to ' : ''}<span class="profit-value ${gain < 0 ? 'negative' : 'positive'}">${signed(gain)}</span></td><td data-label="Legs hit">${slip.legIds.filter(id => state[id] === 'won').length}/${slip.legIds.length}</td><td data-label="Status">${badge(slip.status, slip.status === 'cashed' ? 'Cashed out' : slip.status)}</td></tr>`
     }).join('')
     const timelineStatus = leg => state[leg.id] === 'lost' || state[leg.id] !== 'won' && !refs[leg.id].some(ref => ref.status === 'alive') ? 'dead' : state[leg.id]
     const order = { live:0, upcoming:1, won:2, dead:3 }
