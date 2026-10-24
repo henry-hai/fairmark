@@ -7,7 +7,7 @@ import { onRequest } from './functions/api/engine.js'
 const sample = {
   schema:1, date:'2026-10-21', asOf:'2026-10-21T12:00:00Z', depositFee:2, lists:['private'],
   legs:[
-    { id:'KXNFLREC-ONE', name:'Alice to win', event:'Alice vs Bob', start:'2026-10-22T22:00:00Z', ask:.7, fair:.75, fee:.0147, underFair:.047, fairSource:'Derived from Pinnacle prop line', secret:'private' },
+    { id:'KXNFLREC-ONE', name:'Alice to win', event:'Alice vs Bob', start:'2026-10-22T22:00:00Z', ask:.7, fair:.75, fee:.0147, underFair:.047, fairSource:'Derived from Pinnacle prop line', bovadaOdds:'+150', bovadaImplied:.4, pinnacleRaw:.8, secret:'private' },
     { id:'KXUFCFIGHT-TWO', name:'Carol to win', event:'Carol vs Dan', start:'2026-10-23T22:00:00Z', ask:.8, fair:.84, fee:.0112, underFair:.034, fairSource:'Pinnacle no-vig' },
     { id:'UNUSED', name:'Unused', event:'Unused', start:'2026-10-23T22:00:00Z', ask:.5, fair:.5, fee:.0175, underFair:0, fairSource:'Pinnacle no-vig' }
   ],
@@ -24,6 +24,9 @@ test('queries and paths read only demo keys and project no personal fields or un
     assert.equal(result.status, 200)
     const body = await result.json()
     assert.equal(body.legs.length, 2)
+    assert.equal(body.legs[0].bovadaOdds, '+150')
+    assert.equal(body.legs[0].bovadaImplied, .4)
+    assert.equal(body.legs[0].pinnacleRaw, .8)
     assert.equal(body.slips[0].placed, sample.slips[0].placed)
     for (const forbidden of ['depositFee','lists','private','UNUSED','config:current','snapshot:current']) assert.ok(!JSON.stringify(body).includes(forbidden), forbidden)
   }
@@ -64,7 +67,7 @@ test('modeled track record sums cashed-out and riding demo days without private 
   const { get } = page(body)
   await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
-  assert.match(rendered, /Net profit, all days.*\+\$20\.00.*1 finalized day/)
+  assert.match(rendered, /Net profit, all days.*\+\$20\.00.*2 days/)
   assert.match(rendered, /2026-10-20.*\+\$20\.00/)
   assert.match(rendered, /Still riding.*\$100\.00/)
 })
@@ -135,8 +138,8 @@ test('zero demo profit has no positive class', async () => {
   const { get } = page(data)
   await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
-  assert.match(rendered, /Day profit<\/span><strong class="">\+\$0\.00/)
-  assert.match(rendered, /Net profit, all days<\/span><strong class="">\+\$0\.00/)
+  assert.match(rendered, /Profit now<\/span><strong class="">\+\$0\.00/)
+  assert.match(rendered, /Net profit, all days <span class="">\+\$0\.00/)
   assert.match(rendered, /class="profit-value ">\+\$0\.00/)
 })
 
@@ -168,8 +171,8 @@ test('archived net and daily list exclude later days', async () => {
   const data = { ...entry('2026-10-20', 120), archived:true, days:['2026-10-19','2026-10-20','2026-10-21'], history:[entry('2026-10-21', 130), entry('2026-10-19', 110), entry('2026-10-20', 120)] }
   const { get } = page(data)
   await new Promise(resolve => setImmediate(resolve))
-  const record = get('content').innerHTML.match(/<div class="metric archive-net">[\s\S]*?<\/details><\/div>/)?.[0]
-  assert.match(record, /Net profit, all days.*\+\$30\.00.*2 finalized days/)
+  const record = get('content').innerHTML.match(/<div class="track-record">[\s\S]*?<\/details><\/div>/)?.[0]
+  assert.match(record, /Net profit, all days.*\+\$30\.00.*2 days/)
   assert.match(record, /2026-10-19.*2026-10-20/)
   assert.doesNotMatch(record, /2026-10-21/)
 })
@@ -177,10 +180,67 @@ test('archived net and daily list exclude later days', async () => {
 test('page renders summary, timeline, slips, engine, checker and public palette', async () => {
   const { html, get } = page(); await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
-  for (const expected of ['Profit now','Still riding','Max profit','Staked','Payout locked in','Max still possible','Timeline','Slips','Cashed out','Placed','Price versus fair','How it works','Chance of a profitable day','100,000 trials','Derived from Pinnacle']) assert.ok(rendered.includes(expected), expected)
+  const pricing = rendered.match(/<section aria-labelledby="pricing-title">[\s\S]*?<\/section>/)?.[0]
+  assert.match(pricing, /Kalshi ask<\/th><th>Sportsbook<\/th><th>Pinnacle no-vig fair<\/th><th>Fee<\/th><th>Under fair/)
+  assert.match(pricing, /data-label="Sportsbook"><span class="muted">—<\/span>/)
+  assert.doesNotMatch(pricing, /Not available|undefined|N\/A|raw implied/)
+  for (const expected of ['Profit now','Still riding','Max profit','Staked','Payout locked in','Max still possible','Timeline','Slips','Cashed Out','Placed','Price vs. Fair','Common Questions','100,000 trials']) assert.ok(rendered.includes(expected), expected)
+  assert.equal(rendered.match(/<span class="chance-pill "><span class="status-dot live"><\/span>Live · Day profit chance [^<]+<\/span>/g)?.length, 2)
   assert.ok(!rendered.includes('Live model ·'))
   assert.ok(!rendered.includes('Unused') && !rendered.includes('Lists'))
   for (const token of ['#091321','#5ff5c8','#ff7b8a','30%']) assert.ok(html.includes(token))
+})
+
+test('demo pricing keeps sportsbook columns when every leg has saved prices', async () => {
+  const data = structuredClone(sample)
+  Object.assign(data.legs[1], { bovadaOdds:'-110', bovadaImplied:110 / 210, pinnacleRaw:.86 })
+  data.markets = snapshot.markets
+  data.days = [data.date]
+  const { get } = page(data)
+  await new Promise(resolve => setImmediate(resolve))
+  const pricing = get('content').innerHTML.match(/<section aria-labelledby="pricing-title">[\s\S]*?<\/section>/)?.[0]
+  assert.match(pricing, /\+150<small class="source">40\.0% implied<\/small>.*75\.0%<small class="source">From prop line<\/small>/)
+  assert.doesNotMatch(pricing.match(/<tr class="pricing-row[^>]*>[\s\S]*?<\/tr>/g).find(row => row.includes('+150')), /N\/A|Not available/)
+})
+
+test('demo cards use two full rows and archived filters keep live and upcoming', async () => {
+  const data = { ...structuredClone(sample), markets: snapshot.markets, days:[sample.date], archived:true }
+  const { html, get } = page(data)
+  await new Promise(resolve => setImmediate(resolve))
+  const rendered = get('content').innerHTML
+  const summary = rendered.match(/<section class="metrics" aria-label="Day summary">([\s\S]*?)<\/section>/)?.[1]
+  assert.deepEqual([...summary.matchAll(/<span class="label">([^<]+)<\/span>/g)].map(match => match[1]), ['Profit now','Still riding','Max profit','Staked','Payout locked in','Max still possible'])
+  assert.doesNotMatch(rendered, /aria-label="Day chance"/)
+  for (const status of ['live','upcoming','won','dead']) assert.match(rendered, new RegExp(`data-group="timeline" data-filter="${status}"`))
+  assert.match(html, /\.metrics \{ display:grid; grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
+  assert.match(html, /\.chance-pill \{ border:1px solid/)
+  assert.match(rendered, /<section class="questions" id="common-questions"><h2>Common Questions/)
+})
+
+test('finished demo day shows final result instead of modeled morning chance', async () => {
+  const data = { ...structuredClone(sample), archived:true, markets:{
+    'KXNFLREC-ONE':{ result:'yes', settlement_ts:'2026-10-22T23:00:00Z' },
+    'KXUFCFIGHT-TWO':{ result:'no', settlement_ts:'2026-10-23T23:00:00Z' }
+  }, days:[sample.date] }
+  const { get } = page(data)
+  await new Promise(resolve => setImmediate(resolve))
+  const pills = get('content').innerHTML.match(/<span class="chance-pill[^"]*">[^<]*<\/span>/g)
+  assert.deepEqual(pills, Array(2).fill('<span class="chance-pill negative">Day lost · −$100.00</span>'))
+})
+
+test('demo sorts full cash-outs before dead slips', async () => {
+  const data = structuredClone(sample)
+  data.slips = [
+    { ...data.slips[0], number:1, legIds:['KXNFLREC-ONE'] },
+    { ...data.slips[0], number:2, legIds:['KXUFCFIGHT-TWO'], cashout:{ amount:20, remainingFraction:0 } }
+  ]
+  data.markets = { 'KXNFLREC-ONE':{ result:'no' }, 'KXUFCFIGHT-TWO':{ result:'no' } }
+  data.days = [data.date]
+  data.archived = true
+  const { get } = page(data)
+  await new Promise(resolve => setImmediate(resolve))
+  const rendered = get('content').innerHTML
+  assert.ok(rendered.indexOf('id="slip-2"') < rendered.indexOf('id="slip-1"'))
 })
 
 test('theme follows system and tolerates blocked storage', () => {

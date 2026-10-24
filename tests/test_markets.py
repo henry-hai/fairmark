@@ -2,6 +2,7 @@ import pytest
 
 from fairmark.markets import Quote, bovada_quotes, kalshi_quotes, pinnacle_quotes
 from fairmark.matching import best_quote
+from fairmark.pricing import implied_probability
 
 
 def test_pinnacle_designations_and_three_way_soccer():
@@ -27,6 +28,9 @@ def test_pinnacle_designations_and_three_way_soccer():
     quotes = pinnacle_quotes(matchups, markets)
     assert [quote.outcome for quote in quotes] == ["Barcelona", "Draw", "Madrid"]
     assert sum(quote.probability for quote in quotes) == pytest.approx(1)
+    raw = [implied_probability(quote.odds) for quote in quotes]
+    assert quotes[0].probability == pytest.approx(raw[0] / sum(raw))
+    assert quotes[1].probability == pytest.approx(raw[1] / sum(raw))
 
 
 def test_plain_fighter_name_does_not_choose_a_method_prop():

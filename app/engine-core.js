@@ -24,7 +24,10 @@ function publicView(config, snapshot, days, archived) {
     id: leg.id, name: leg.name, event: leg.event, start: leg.start,
     ...(typeof leg.priceAt === 'string' ? { priceAt: leg.priceAt } : {}),
     ask: leg.ask, fair: leg.fair, fee: leg.fee, underFair: leg.underFair,
-    fairSource: leg.fairSource
+    fairSource: leg.fairSource,
+    bovadaOdds: leg.bovadaOdds ?? null,
+    bovadaImplied: leg.bovadaImplied ?? null,
+    pinnacleRaw: leg.pinnacleRaw ?? null
   }))
   const ids = new Set(legs.map(leg => leg.id))
   const slips = config.slips.map(slip => ({
@@ -47,10 +50,13 @@ function publicView(config, snapshot, days, archived) {
   }
   if (!legs.length || ids.size !== used.size || !legs.every(leg =>
     ['id', 'name', 'event', 'start', 'fairSource'].every(key => typeof leg[key] === 'string') &&
-    ['ask', 'fair', 'fee', 'underFair'].every(key => finite(leg[key]))) ||
+    ['ask', 'fee'].every(key => finite(leg[key])) &&
+    ['fair', 'underFair'].every(key => leg[key] === null || finite(leg[key]))) ||
     !slips.every(slip => Number.isInteger(slip.number) && Array.isArray(slip.legIds) &&
       slip.legIds.length && slip.legIds.every(id => typeof id === 'string' && ids.has(id)) &&
-      ['stake', 'hitChance', 'fee', 'totalPayout', 'gain', 'fairPayout', 'underFair'].every(key => finite(slip[key]))) ||
+      ['stake', 'fee', 'totalPayout', 'gain'].every(key => finite(slip[key])) &&
+      // A leg without a sportsbook fair leaves the slip's fair figures blank instead of hiding the day.
+      ['hitChance', 'fairPayout', 'underFair'].every(key => slip[key] === null || finite(slip[key]))) ||
     !['stake', 'allHitPayout', 'allHitGain', 'allHitFairPayout', 'allHitFairGain', 'dayProfitChance', 'medianGain', 'trials'].every(key => finite(portfolio[key]))) return null
   const markets = {}
   const snapshotMarkets = snapshot?.date === date ? snapshot.markets : null

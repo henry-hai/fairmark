@@ -25,6 +25,19 @@ uv sync
 uv run fairmark slate slate.txt
 ```
 
+Market and combo search runs from the command line. For example, put `slip 1 10: Lakers to win, Celtics to win` in `slate.txt`, then run:
+
+```text
+$ uv run fairmark slate slate.txt --trials 100000
+Fairmark slate | ... Pacific
+Leg | Kalshi price (ask) | Bovada odds | Bovada implied % | Pinnacle fair %
+Kalshi verification
+Estimated slips
+Monte Carlo | 100,000 trials | ...
+```
+
+The result depends on live matches. Missing fair lines show `N/A` and make the simulation unavailable.
+
 ## Tests
 
 ```bash
