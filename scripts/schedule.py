@@ -17,6 +17,7 @@ from fairmark.cli import actual_start, fetch_quotes, resolve, sport_family, uniq
 from fairmark.input import Slip as SlateSlip
 from fairmark.markets import kalshi_quotes
 from fairmark.matching import best_quote
+from fairmark.pricing import implied_probability
 
 ROOT = Path(__file__).resolve().parents[1]
 API = clients.KALSHI
@@ -181,13 +182,21 @@ def same_matchup(pinned_title: str, sportsbook_title: str) -> bool:
     return all(f' {normalized_name(name)} ' in event for name in names)
 
 
+def selected_quote(quote, quotes, side):
+    if quote is None or side == 'yes':
+        return quote
+    siblings = [item for item in quotes if item.identifier.rsplit(':', 1)[0] == quote.identifier.rsplit(':', 1)[0]]
+    others = [item for item in siblings if item.identifier != quote.identifier]
+    return others[0] if len(siblings) == 2 and len(others) == 1 else None
+
+
 def build(day: date, slips: list[Slip], overrides: dict[str, Override]) -> tuple[dict, dict]:
     names = unique_legs([SlateSlip(s.name, float(s.stake), s.legs) for s in slips])
     canonical = {name.casefold(): name for name in names}
     unknown = set(overrides) - {name.casefold() for name in names}
     if unknown:
         raise ValueError('Ticker overrides without slip legs: ' + ', '.join(sorted(unknown)))
-    by_source, warnings = fetch_quotes(names, include_kalshi=len(overrides) < len(names), include_coupons=False)
+    by_source, warnings = fetch_quotes(names, include_kalshi=len(overrides) < len(names))
     pinned, pinned_markets = pinned_events(overrides) if overrides else ([], {})
     pinned_titles = {event['event_ticker']: event.get('title', '') for event in pinned}
     by_source['Kalshi'].extend(kalshi_quotes(pinned))
@@ -235,11 +244,22 @@ def build(day: date, slips: list[Slip], overrides: dict[str, Override]) -> tuple
             start_source = ('Pinnacle' if pinnacle and pinnacle.start else 'Bovada' if bovada and bovada.start else 'estimated')
         if start is None:
             raise ValueError(f'No start time for {name}')
+        selected_pinnacle = selected_quote(pinnacle, by_source['Pinnacle'], side)
+        selected_bovada = selected_quote(bovada, by_source['Bovada'], side)
+        fair = (selected_pinnacle.probability if selected_pinnacle and selected_pinnacle.probability is not None
+                else 1 - pinnacle.probability if side == 'no' and pinnacle and pinnacle.probability is not None
+                else None)
+        pinnacle_raw = implied_probability(selected_pinnacle.odds) if selected_pinnacle and selected_pinnacle.odds else None
+        bovada_odds = selected_bovada.odds if selected_bovada else None
+        bovada_implied = implied_probability(bovada_odds) if bovada_odds else None
         items.append({'name': name, 'ticker': ticker, 'side': side,
                       'eventTicker': event_of(ticker),
                       'eventTitle': pinned_titles.get(event_of(ticker), kalshi.event),
                       'start': start.astimezone(timezone.utc).isoformat(), 'estimated': estimated,
-                      'startSource': start_source})
+                      'startSource': start_source,
+                      'bovadaOdds': bovada_odds, 'bovadaImplied': bovada_implied,
+                      'pinnacleRaw': pinnacle_raw, 'fair': fair,
+                      'fairSource': 'Pinnacle no-vig' if fair is not None else None})
     for message in warnings + notes:
         print(message)
     config = {'date': day.isoformat(), 'slips': [

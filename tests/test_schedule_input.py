@@ -46,9 +46,12 @@ def test_ticker_time_wins_and_unmatched_sportsbook_start_is_ignored(monkeypatch)
     ticker = 'KXNCAAFGAME-EVENT-SOUTH'
     kalshi = Quote('Kalshi', 'South St.', 'winner', 'North St. vs South St.', 'KXNCAAFGAME', datetime.fromisoformat('2026-10-18T02:00:00+00:00'), 'winner', ticker)
     wrong = Quote('Pinnacle', 'South', 'moneyline', 'West State vs South', 'football', datetime.fromisoformat('2026-10-18T03:00:00+00:00'), 'winner', 'wrong')
-    right = Quote('Bovada', 'South State', 'moneyline', 'North State vs South State', 'football', datetime.fromisoformat('2026-10-17T22:00:00+00:00'), 'winner', 'right')
+    right = Quote('Bovada', 'South State', 'moneyline', 'North State vs South State', 'football', datetime.fromisoformat('2026-10-17T22:00:00+00:00'), 'winner', 'bovada:market:south', odds='-150', probability=.6, fair_probability=.62)
     quotes = {'Kalshi': [], 'Pinnacle': [], 'Bovada': []}
-    monkeypatch.setattr(module, 'fetch_quotes', lambda *args, **kwargs: (quotes, []))
+    def fetch(*args, **kwargs):
+        assert kwargs.get('include_coupons', True) is True
+        return quotes, []
+    monkeypatch.setattr(module, 'fetch_quotes', fetch)
     monkeypatch.setattr(module, 'pinned_events', lambda *args: ([{'event_ticker': ticker,
         'title': 'North St. vs South St.'}], {}))
     monkeypatch.setattr(module, 'kalshi_quotes', lambda *args: [kalshi])
@@ -62,18 +65,42 @@ def test_ticker_time_wins_and_unmatched_sportsbook_start_is_ignored(monkeypatch)
     assert leg['eventTitle'] == 'North St. vs South St.'
     assert leg['startSource'] == 'ticker file'
     assert leg['estimated'] is False
+    assert leg['fair'] is None
+    assert leg['fairSource'] is None
+    assert leg['bovadaOdds'] == '-150'
+    assert leg['bovadaImplied'] == .6
+    assert leg['pinnacleRaw'] is None
+    quotes['Bovada'].append(right)
+    quotes['Bovada'].append(Quote('Bovada', 'North State', 'moneyline', 'North State vs South State', 'football', right.start, 'winner', 'bovada:market:north', odds='+130', probability=100 / 230))
+    no_leg = module.build(date(2026, 10, 17), slips, {'south st.': module.Override(ticker, 'no', pinned_time)})[0]['legs'][0]
+    assert no_leg['fair'] is None
+    assert no_leg['bovadaOdds'] == '+130'
+    assert no_leg['bovadaImplied'] == 100 / 230
 
     leg = module.build(date(2026, 10, 17), slips, {'south st.': module.Override(ticker, 'yes')})[0]['legs'][0]
     assert leg['start'] == right.start.isoformat()
     assert leg['startSource'] == 'Bovada'
 
-    quotes['Pinnacle'].append(Quote('Pinnacle', 'South State', 'moneyline', 'South State vs North State', 'football', datetime.fromisoformat('2026-10-17T21:00:00+00:00'), 'winner', 'other'))
+    quotes['Pinnacle'].append(Quote('Pinnacle', 'South State', 'moneyline', 'South State vs North State', 'football', datetime.fromisoformat('2026-10-17T21:00:00+00:00'), 'winner', 'pin:market:south', odds='-160', probability=.67))
     leg = module.build(date(2026, 10, 17), slips, {'south st.': module.Override(ticker, 'yes')})[0]['legs'][0]
     assert leg['startSource'] == 'Pinnacle'
     assert leg['start'] == quotes['Pinnacle'][0].start.isoformat()
+    assert leg['fair'] == .67
+    assert leg['pinnacleRaw'] == 160 / 260
+    assert leg['fairSource'] == 'Pinnacle no-vig'
+    no_leg = module.build(date(2026, 10, 17), slips, {'south st.': module.Override(ticker, 'no')})[0]['legs'][0]
+    assert no_leg['fair'] == 1 - .67
+    assert no_leg['pinnacleRaw'] is None
+    quotes['Pinnacle'].append(Quote('Pinnacle', 'North State', 'moneyline', 'South State vs North State', 'football', quotes['Pinnacle'][0].start, 'winner', 'pin:market:north', odds='+140', probability=.33))
+    no_leg = module.build(date(2026, 10, 17), slips, {'south st.': module.Override(ticker, 'no')})[0]['legs'][0]
+    assert no_leg['bovadaOdds'] == '+130'
+    assert no_leg['bovadaImplied'] == 100 / 230
+    assert no_leg['pinnacleRaw'] == 100 / 240
+    assert no_leg['fair'] == .33
 
     quotes['Pinnacle'].clear()
     matches['Bovada'] = None
+    quotes['Bovada'].clear()
     leg = module.build(date(2026, 10, 17), slips, {'south st.': module.Override(ticker, 'yes')})[0]['legs'][0]
     assert leg['estimated'] is True
     assert leg['startSource'] == 'estimated'
@@ -83,18 +110,64 @@ def test_ticker_time_wins_and_unmatched_sportsbook_start_is_ignored(monkeypatch)
     assert leg['startSource'] == 'estimated'
 
 
-def test_push_rejects_schedule_without_start_provenance(tmp_path):
+def test_push_rejects_schedule_without_start_provenance(tmp_path, capsys):
     push_path = script.with_name('push_slips.py')
     push_spec = importlib.util.spec_from_file_location('push_slips_script', push_path)
     push = importlib.util.module_from_spec(push_spec)
     push_spec.loader.exec_module(push)
     payload = tmp_path / 'schedule.json'
-    payload.write_text(json.dumps({'legs': [{'start': '2026-10-17T22:00:00+00:00', 'startSource': 'ticker file'}], 'cashouts': {}}))
-    push.validate_schedule(payload)
-    payload.write_text(json.dumps({'legs': [{'start': '2026-10-17T22:00:00+00:00'}]}))
+    payload.write_text(json.dumps({'legs': [{'name': 'South St.', 'start': '2026-10-17T22:00:00+00:00', 'startSource': 'ticker file', 'fair': None, 'fairSource': None, 'bovadaOdds': None, 'bovadaImplied': None, 'pinnacleRaw': None}], 'cashouts': {}}))
     import pytest
+    push.validate_schedule(payload)
+    warning = capsys.readouterr().err
+    for field in ('bovadaOdds', 'bovadaImplied', 'pinnacleRaw', 'fair'):
+        assert f'South St.: {field}' in warning
+    payload.write_text(json.dumps({'legs': [{'start': '2026-10-17T22:00:00+00:00'}]}))
     with pytest.raises(ValueError, match='resolved start source'):
         push.validate_schedule(payload)
+    payload.write_text(json.dumps({'legs': [{'start': '2026-10-17T22:00:00+00:00', 'startSource': 'ticker file', 'bovadaOdds': '+150', 'bovadaImplied': .4, 'pinnacleRaw': .8, 'fair': .75}], 'cashouts': {}}))
+    with pytest.raises(ValueError, match='Fair reference'):
+        push.validate_schedule(payload)
+
+
+def test_push_checks_bovada_implied_and_pinnacle_fair_source(tmp_path):
+    import pytest
+    push_path = script.with_name('push_slips.py')
+    push_spec = importlib.util.spec_from_file_location('push_slips_script_prices', push_path)
+    push = importlib.util.module_from_spec(push_spec)
+    push_spec.loader.exec_module(push)
+    leg = {'start': '2026-10-17T22:00:00+00:00', 'startSource': 'ticker file',
+           'bovadaOdds': '+150', 'bovadaImplied': .4, 'pinnacleRaw': .8,
+           'fair': .75, 'fairSource': 'Pinnacle no-vig'}
+    payload = tmp_path / 'schedule.json'
+    payload.write_text(json.dumps({'legs': [leg], 'cashouts': {}}))
+    push.validate_schedule(payload)
+    leg['bovadaImplied'] = .5
+    payload.write_text(json.dumps({'legs': [leg], 'cashouts': {}}))
+    with pytest.raises(ValueError, match='Bovada implied'):
+        push.validate_schedule(payload)
+    leg['bovadaImplied'] = .4
+    leg['fairSource'] = 'Bovada no-vig'
+    payload.write_text(json.dumps({'legs': [leg], 'cashouts': {}}))
+    with pytest.raises(ValueError, match='Pinnacle no-vig'):
+        push.validate_schedule(payload)
+
+
+def test_push_lists_every_missing_leg_and_field(tmp_path, capsys):
+    push_path = script.with_name('push_slips.py')
+    push_spec = importlib.util.spec_from_file_location('push_slips_script_missing', push_path)
+    push = importlib.util.module_from_spec(push_spec)
+    push_spec.loader.exec_module(push)
+    base = {'start': '2026-10-17T22:00:00+00:00', 'startSource': 'ticker file',
+            'bovadaOdds': '+150', 'bovadaImplied': .4, 'pinnacleRaw': .8,
+            'fair': .75, 'fairSource': 'Pinnacle no-vig'}
+    legs = [{**base, 'name': 'Alpha', 'bovadaOdds': None, 'fair': None},
+            {**base, 'name': 'Beta', 'bovadaImplied': None, 'pinnacleRaw': None}]
+    payload = tmp_path / 'schedule.json'
+    payload.write_text(json.dumps({'legs': legs, 'cashouts': {}}))
+    push.validate_schedule(payload)
+    assert capsys.readouterr().err.splitlines()[1:] == [
+        'Alpha: bovadaOdds', 'Alpha: fair', 'Beta: bovadaImplied', 'Beta: pinnacleRaw']
 
 
 def test_cashouts_parse_full_and_partial_and_reject_bad_entries(tmp_path):
@@ -121,12 +194,12 @@ def test_push_requires_cashouts_in_uploaded_config(tmp_path):
     push = importlib.util.module_from_spec(push_spec)
     push_spec.loader.exec_module(push)
     payload = tmp_path / 'schedule.json'
-    payload.write_text(json.dumps({'legs': [{'start': '2026-10-17T22:00:00+00:00', 'startSource': 'ticker file'}]}))
+    payload.write_text(json.dumps({'legs': [{'start': '2026-10-17T22:00:00+00:00', 'startSource': 'ticker file', 'fair': None, 'fairSource': None, 'bovadaOdds': None, 'bovadaImplied': None, 'pinnacleRaw': None}]}))
     with pytest.raises(ValueError, match='cash-outs'):
         push.validate_schedule(payload)
 
 
-def test_generated_schedule_contains_cashouts_for_upload(tmp_path, monkeypatch):
+def test_generated_schedule_contains_cashouts_for_upload(tmp_path, monkeypatch, capsys):
     slips_dir = tmp_path / 'data' / 'slips'
     slips_dir.mkdir(parents=True)
     (slips_dir / '2026-10-17.txt').write_text('slip sample 12 36: Team A\n')
@@ -137,7 +210,7 @@ def test_generated_schedule_contains_cashouts_for_upload(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'ROOT', tmp_path)
     monkeypatch.setattr(module, 'build', lambda day, slips, overrides: ({
         'date': day.isoformat(), 'slips': [{'name': 'sample', 'stake': '12', 'payout': '36', 'legs': ['Team A']}],
-        'legs': [{'name': 'Team A', 'start': '2026-10-17T22:00:00+00:00', 'startSource': 'ticker file'}]
+            'legs': [{'name': 'Team A', 'start': '2026-10-17T22:00:00+00:00', 'startSource': 'ticker file', 'fair': None, 'fairSource': None, 'bovadaOdds': None, 'bovadaImplied': None, 'pinnacleRaw': None}]
     }, {}))
     monkeypatch.setattr(sys, 'argv', ['schedule.py', '2026-10-17'])
     module.main()
@@ -149,7 +222,9 @@ def test_generated_schedule_contains_cashouts_for_upload(tmp_path, monkeypatch):
     push_spec = importlib.util.spec_from_file_location('push_slips_script_generated', push_path)
     push = importlib.util.module_from_spec(push_spec)
     push_spec.loader.exec_module(push)
+    capsys.readouterr()
     push.validate_schedule(payload)
+    assert 'Team A: bovadaOdds' in capsys.readouterr().err
 
 
 def test_placed_times_read_as_pacific_on_the_slip_day(tmp_path):

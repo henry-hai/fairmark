@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import subprocess
 import sys
 import tempfile
 from datetime import date
 from pathlib import Path
+
+from fairmark.pricing import implied_probability
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,6 +25,26 @@ def validate_schedule(payload: Path) -> None:
         raise ValueError('Generated schedule has a leg without a resolved start source')
     if not isinstance(config.get('cashouts'), dict):
         raise ValueError('Generated schedule is missing cash-outs')
+    # Many props and esports legs have no sportsbook line, so a gap warns instead of blocking
+    # the upload. The page hides any price column that a day's legs don't all have.
+    required = ('bovadaOdds', 'bovadaImplied', 'pinnacleRaw', 'fair')
+    missing = [f"{leg.get('name', '<unnamed>')}: {field}"
+               for leg in config['legs'] for field in required if leg.get(field) is None]
+    if missing:
+        print('Warning, missing sportsbook prices:\n' + '\n'.join(missing), file=sys.stderr)
+    for leg in config['legs']:
+        odds = leg.get('bovadaOdds')
+        implied = leg.get('bovadaImplied')
+        if odds is not None and implied is not None:
+            if (not isinstance(odds, str) or not isinstance(implied, (int, float))
+                    or not math.isfinite(implied) or not math.isclose(implied_probability(odds), implied)):
+                raise ValueError('Bovada implied chance does not match its odds')
+        for key in ('pinnacleRaw', 'fair'):
+            value = leg.get(key)
+            if value is not None and (not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 < value <= 1):
+                raise ValueError(f'Invalid {key} chance')
+        if leg.get('fair') is not None and leg.get('fairSource') != 'Pinnacle no-vig':
+            raise ValueError('Fair reference must be Pinnacle no-vig')
 
 
 def wrangler_kv(*args: str, check: bool = True) -> subprocess.CompletedProcess:
