@@ -365,7 +365,7 @@ test('every slip shows state chips and dead slips identify losing legs', async (
   assert.match(rows, /id="slip-alive".*?leg-chip won.*?Won.*?✓.*?leg-chip won.*?Near won.*?✓.*?leg-chip live.*?Live.*?55\.0%.*?leg-chip upcoming.*?Upcoming.*?3:00 PM.*?Legs hit">2\/4/)
   assert.match(rows, /id="slip-won".*?Legs hit">2\/2.*?class="badge won"/)
   assert.match(rows, /id="slip-dead".*?<details.*?leg-chip lost killer.*?Lost.*?Killed slip.*?leg-chip lost killer.*?Near lost.*?Killed slip.*?Legs hit 1\/4/)
-  assert.match(rows, /id="slip-cashed".*?leg-chip lost.*?Lost.*?Profit">−\$17\.50.*?class="badge cashed">Cashed out/)
+  assert.match(rows, /id="slip-cashed".*?leg-chip lost.*?Lost.*?Profit">−\$17\.50.*?class="badge cashed">Cashed Out/)
 })
 
 test('full and partial cash-outs reduce exposure and count received money', async () => {
@@ -493,10 +493,58 @@ test('daily results and tracker cards keep the demo order', async () => {
   const record = document.getElementById('track-record').innerHTML
   const tracker = document.getElementById('profit-tracker').innerHTML
   const summary = document.getElementById('summary').innerHTML
-  assert.match(record, /<summary>Daily results<\/summary>/)
+  assert.match(record, /<summary>Daily Results<\/summary>/)
   assert.deepEqual([...tracker.matchAll(/<span>(Profit now|Still riding|Max profit)<\/span>/g)].map(match => match[1]), ['Profit now', 'Still riding', 'Max profit'])
   assert.deepEqual([...summary.matchAll(/<span>(Staked|Payout locked in|Max still possible)<\/span>/g)].map(match => match[1]), ['Staked', 'Payout locked in', 'Max still possible'])
   assert.match(tracker, /Still riding<\/span><strong>.*?<\/strong><small class="detail">Max payout /)
+})
+
+test('private pricing shows a dash for missing sportsbook prices', async () => {
+  const html = readFileSync(new URL('./page.html', import.meta.url), 'utf8')
+  const legs = [
+    { name:'Quoted', ticker:'Q', side:'yes', start:'2026-10-17T17:00:00Z', fair:0.75, fairSource:'Pinnacle no-vig', bovadaOdds:'+150', bovadaImplied:0.4, pinnacleRaw:0.8 },
+    { name:'Unpriced', ticker:'U', side:'no', start:'2026-10-17T17:00:00Z' }
+  ]
+  const slips = [{ name:'1', stake:'10', payout:'20', legs:['Quoted'] }]
+  const document = await renderPage({ config:{ date:config.date, legs, slips }, markets:{ Q:{ yes_ask_dollars:'0.70' }, U:{ no_ask_dollars:'0.40' } }, stale:false })
+  const rows = document.getElementById('pricing').innerHTML
+  assert.match(rows, /Quoted.*70\.0¢.*1\.5¢/)
+  assert.match(rows, /Unpriced.*40\.0¢/)
+  const unpriced = rows.match(/<tr><td class="outcome">Unpriced[\s\S]*?<\/tr>/)[0]
+  assert.equal(unpriced.match(/<span class="muted">—<\/span>/g).length, 3)
+  assert.doesNotMatch(rows, /Not available|undefined|N\/A/)
+  assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">Pinnacle no-vig fair<\/th><th scope="col">Fee<\/th><th scope="col">Under fair/)
+  assert.match(html, /--bg: #091321; --panel: #112136; --panel2: #172a43/)
+  assert.match(html, /font: 15px\/1\.55 Inter/)
+  assert.match(html, /thead th \{[^}]*text-transform: uppercase; letter-spacing: \.07em/)
+  assert.match(html, /<section class="questions" id="common-questions"><h2>Common Questions/)
+})
+
+test('private pricing keeps all saved sportsbook columns', async () => {
+  const leg = { name:'Quoted', ticker:'Q', side:'yes', start:'2026-10-17T17:00:00Z', fair:0.75, fairSource:'Pinnacle no-vig', bovadaOdds:'+150', bovadaImplied:0.4, pinnacleRaw:0.8 }
+  const document = await renderPage({ config:{ date:config.date, legs:[leg], slips:[{ name:'1', stake:'10', payout:'20', legs:['Quoted'] }] }, markets:{ Q:{ yes_ask_dollars:'0.70' } }, stale:false })
+  assert.match(document.getElementById('pricing').innerHTML, /Quoted.*70\.0¢.*\+150<small class="source">40\.0% implied<\/small>.*75\.0%.*1\.5¢.*\+4\.7%/)
+  assert.doesNotMatch(document.getElementById('pricing').innerHTML, /—/)
+})
+
+test('finished private day shows the settled result by the header', async () => {
+  const document = await renderPage({ config:{ date:config.date,
+    legs:[{ name:'Winner', ticker:'W', side:'yes', start:'2026-10-17T17:00:00Z' }],
+    slips:[{ name:'1', stake:'10', payout:'20', legs:['Winner'] }] },
+    markets:{ W:{ result:'yes' } }, stale:false })
+  for (const id of ['day-chance-timeline', 'day-chance-slips']) assert.equal(document.getElementById(id).innerHTML, 'Day won · +$10.00')
+})
+
+test('private sorts full cash-outs before dead slips', async () => {
+  const legs = [{ name:'Lost', ticker:'L', side:'yes', start:'2026-10-17T17:00:00Z' }]
+  const slips = [
+    { name:'1', stake:'10', payout:'20', legs:['Lost'] },
+    { name:'2', stake:'10', payout:'20', legs:['Lost'] }
+  ]
+  const cashouts = { '2':{ amount:'5', remainingFraction:0 } }
+  const document = await renderPage({ config:{ date:config.date, legs, slips, cashouts }, markets:{ L:{ result:'no' } }, stale:false })
+  const rows = document.getElementById('slips').innerHTML
+  assert.ok(rows.indexOf('id="slip-2"') < rows.indexOf('id="slip-1"'))
 })
 
 test('slips show placed and settled times, day tabs and lists', async () => {
