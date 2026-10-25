@@ -53,6 +53,8 @@
     .muted { color: var(--muted); }
     .sport-tile { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: 9px; border-radius: 7px; background: var(--panel2); border: 1px solid var(--line); font-size: 13px; line-height: 1; vertical-align: -5px; }
     .leg-chip .leg-name { display: inline-flex; align-items: center; }
+    .leg-line { display: flex; align-items: center; }
+    .leg-line .sport-tile { vertical-align: 0; }
     .leg-chip .sport-tile { width: 20px; height: 20px; margin-right: 6px; border-radius: 5px; font-size: 11px; vertical-align: 0; }
     .book-tag { display: inline-block; margin-bottom: 5px; padding: 0 7px; border: 1px solid currentColor; border-radius: 6px; font-size: .66rem; font-weight: 700; line-height: 1.6; letter-spacing: .02em; color: var(--muted); }
     .book-tag.spacer { visibility: hidden; }
@@ -254,7 +256,7 @@
     const underFair = validAsk && validFair ? (fair - ask - fee) / fair : null
     const figure = text => `<span class="figure">${text}</span>`
     const under = underFair !== null ? figure(`<span class="edge ${underFair < 0 ? 'negative' : ''}">${underFair > 0 ? '+' : ''}${pct(underFair)}</span>`) : validFair ? figure('Price pending') : missing
-    return `<tr class="pricing-row"><td class="outcome">${sportTile(leg.ticker, leg.icon)}${escapeHtml(leg.name)}<small>${escapeHtml(timelineStamp(start))} Pacific</small></td><td data-label="Kalshi ask">${spacer}${figure(validAsk ? priceCents(ask) : 'Price pending')}</td><td data-label="Sportsbook">${book ? `${bookTag(book.book)}${figure(chance(book.chance))}<small class="source">${escapeHtml(book.odds)}</small>` : spacer + missing}</td><td data-label="Fair, no vig">${validFair ? bookTag('Pinnacle') + figure(pct(fair)) : spacer + missing}</td><td data-label="Fee">${spacer}${figure(fee === null ? 'Price pending' : priceCents(fee))}</td><td data-label="Under fair">${spacer}${under}</td></tr>`
+    return `<tr class="pricing-row"><td class="outcome"><span class="leg-line">${sportTile(leg.ticker, leg.icon)}${escapeHtml(leg.name)}</span><small>${escapeHtml(timelineStamp(start))} Pacific</small></td><td data-label="Kalshi ask">${spacer}${figure(validAsk ? priceCents(ask) : 'Price pending')}</td><td data-label="Sportsbook">${book ? `${bookTag(book.book)}${figure(chance(book.chance))}<small class="source">${escapeHtml(book.odds)}</small>` : spacer + missing}</td><td data-label="Fair, no vig">${validFair ? bookTag('Pinnacle') + figure(pct(fair)) : spacer + missing}</td><td data-label="Fee">${spacer}${figure(fee === null ? 'Price pending' : priceCents(fee))}</td><td data-label="Under fair">${spacer}${under}</td></tr>`
   }
 
   for (const [group, elementId] of [['timeline', 'timeline-filters'], ['slips', 'slip-filters']]) {

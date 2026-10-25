@@ -56,6 +56,8 @@
     @media(max-width:600px) { .pricing-row .book-tag.spacer { display:none } }
     .sport-tile { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; margin-right:9px; border-radius:7px; background:var(--panel2); border:1px solid var(--line); font-size:13px; line-height:1; vertical-align:-5px; flex:none }
     .leg-chip .leg-name { display:inline-flex; align-items:center }
+    .leg-line { display:flex; align-items:center }
+    .leg-line .sport-tile { vertical-align:0 }
     .leg-chip .sport-tile { width:20px; height:20px; margin-right:6px; border-radius:5px; font-size:11px; vertical-align:0 }
     .fold > summary { list-style:none; cursor:pointer }
     .fold > summary::-webkit-details-marker { display:none }
@@ -275,7 +277,7 @@
     const sportsbook = book ? `${tag(book.book)}<span class="figure">${pct(book.chance)}</span><small class="source">${escapeHtml(book.odds)}</small>` : spacer + dash
     const fair = hasFair ? `${tag('Pinnacle')}<span class="figure">${pct(leg.fair)}</span>${/Derived/.test(leg.fairSource) ? '<small class="source">From prop line</small>' : ''}` : spacer + dash
     const under = hasFair && Number.isFinite(leg.underFair) ? `<span class="figure">${edge(leg.underFair)}</span>` : dash
-    return `<tr class="pricing-row ${selected.has(leg.id) ? 'selected' : ''}" ><td class="outcome">${sportTile(leg.id, leg.icon)}${escapeHtml(legName(leg))}<small>${escapeHtml(leg.event)} · ${escapeHtml(stamp(leg.start))}</small></td><td data-label="Kalshi ask">${spacer}<span class="figure">${Number.isFinite(leg.ask) ? cents(leg.ask) : 'Price pending'}</span></td><td data-label="Sportsbook">${sportsbook}</td><td data-label="Fair, no vig">${fair}</td><td data-label="Fee">${spacer}<span class="figure">${Number.isFinite(leg.fee) ? cents(leg.fee) : 'Price pending'}</span></td><td data-label="Under fair">${spacer}${under}</td></tr>`
+    return `<tr class="pricing-row ${selected.has(leg.id) ? 'selected' : ''}" ><td class="outcome"><span class="leg-line">${sportTile(leg.id, leg.icon)}${escapeHtml(legName(leg))}</span><small>${escapeHtml(leg.event)} · ${escapeHtml(stamp(leg.start))}</small></td><td data-label="Kalshi ask">${spacer}<span class="figure">${Number.isFinite(leg.ask) ? cents(leg.ask) : 'Price pending'}</span></td><td data-label="Sportsbook">${sportsbook}</td><td data-label="Fair, no vig">${fair}</td><td data-label="Fee">${spacer}<span class="figure">${Number.isFinite(leg.fee) ? cents(leg.fee) : 'Price pending'}</span></td><td data-label="Under fair">${spacer}${under}</td></tr>`
   }
   const filterButtons = group => Object.entries(filters[group]).map(([status, active]) => `<button type="button" class="filter-chip ${status}" data-group="${group}" data-filter="${status}" aria-pressed="${active}">${status === 'cashed' ? 'Cashed Out' : status[0].toUpperCase() + status.slice(1)}</button>`).join('')
   function renderChecker(data) {

@@ -510,7 +510,7 @@ test('private pricing shows a dash for missing sportsbook prices', async () => {
   const rows = document.getElementById('pricing').innerHTML
   assert.match(rows, /Quoted.*70\.0¢.*1\.5¢/)
   assert.match(rows, /Unpriced.*40\.0¢/)
-  const unpriced = rows.match(/<tr class="pricing-row"><td class="outcome"><span class="sport-tile"[^>]*>🏆<\/span>Unpriced[\s\S]*?<\/tr>/)[0]
+  const unpriced = rows.match(/<tr class="pricing-row"><td class="outcome"><span class="leg-line"><span class="sport-tile"[^>]*>🏆<\/span>Unpriced[\s\S]*?<\/tr>/)[0]
   assert.equal(unpriced.match(/<span class="figure muted">—<\/span>/g).length, 3)
   assert.doesNotMatch(rows, /Not available|undefined|N\/A/)
   assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">Fair, no vig<\/th><th scope="col">Fee<\/th><th scope="col">Under fair/)
