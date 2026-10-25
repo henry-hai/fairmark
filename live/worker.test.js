@@ -510,10 +510,10 @@ test('private pricing shows a dash for missing sportsbook prices', async () => {
   const rows = document.getElementById('pricing').innerHTML
   assert.match(rows, /Quoted.*70\.0¢.*1\.5¢/)
   assert.match(rows, /Unpriced.*40\.0¢/)
-  const unpriced = rows.match(/<tr><td class="outcome">Unpriced[\s\S]*?<\/tr>/)[0]
-  assert.equal(unpriced.match(/<span class="muted">—<\/span>/g).length, 3)
+  const unpriced = rows.match(/<tr class="pricing-row"><td class="outcome">Unpriced[\s\S]*?<\/tr>/)[0]
+  assert.equal(unpriced.match(/<span class="figure muted">—<\/span>/g).length, 3)
   assert.doesNotMatch(rows, /Not available|undefined|N\/A/)
-  assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">Pinnacle no-vig fair<\/th><th scope="col">Fee<\/th><th scope="col">Under fair/)
+  assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">Fair, no vig<\/th><th scope="col">Fee<\/th><th scope="col">Under fair/)
   assert.match(html, /--bg: #091321; --panel: #112136; --panel2: #172a43/)
   assert.match(html, /font: 15px\/1\.55 Inter/)
   assert.match(html, /thead th \{[^}]*text-transform: uppercase; letter-spacing: \.07em/)
@@ -523,8 +523,19 @@ test('private pricing shows a dash for missing sportsbook prices', async () => {
 test('private pricing keeps all saved sportsbook columns', async () => {
   const leg = { name:'Quoted', ticker:'Q', side:'yes', start:'2026-10-17T17:00:00Z', fair:0.75, fairSource:'Pinnacle no-vig', bovadaOdds:'+150', bovadaImplied:0.4, pinnacleRaw:0.8 }
   const document = await renderPage({ config:{ date:config.date, legs:[leg], slips:[{ name:'1', stake:'10', payout:'20', legs:['Quoted'] }] }, markets:{ Q:{ yes_ask_dollars:'0.70' } }, stale:false })
-  assert.match(document.getElementById('pricing').innerHTML, /Quoted.*70\.0¢.*\+150<small class="source">40\.0% implied<\/small>.*75\.0%.*1\.5¢.*\+4\.7%/)
+  assert.match(document.getElementById('pricing').innerHTML, /Quoted.*70\.0¢.*<span class="book-tag ">Bovada<\/span><span class="figure">40\.0%<\/span><small class="source">\+150<\/small>.*<span class="book-tag pin">Pinnacle<\/span><span class="figure">75\.0%.*1\.5¢.*\+4\.7%/)
   assert.doesNotMatch(document.getElementById('pricing').innerHTML, /—/)
+  const drafted = await renderPage({ config:{ date:config.date, legs:[{ ...leg, book:'DraftKings', bookOdds:'-340', bookChance:.773 }], slips:[{ name:'1', stake:'10', payout:'20', legs:['Quoted'] }] }, markets:{ Q:{ yes_ask_dollars:'0.70' } }, stale:false })
+  assert.match(drafted.getElementById('pricing').innerHTML, /<span class="book-tag dk">DraftKings<\/span><span class="figure">77\.3%<\/span><small class="source">-340<\/small>/)
+})
+
+test('private page says when prices paused because the poller slept', async () => {
+  const now = Date.parse('2026-10-17T03:00:00Z')
+  const document = await renderPage({ config:{ date:config.date,
+    legs:[{ name:'Later', ticker:'L', side:'yes', start:'2026-10-17T05:00:00Z' }],
+    slips:[{ name:'1', stake:'10', payout:'20', legs:['Later'] }] },
+    markets:{ L:{ yes_ask_dollars:'0.70', fetchedAt:now - 30 * 60 * 1000 } }, stale:true }, { now })
+  assert.match(document.getElementById('updated').textContent, /^Prices paused since .+ PT, 30 minutes ago\. The Mac poller may be asleep\.$/)
 })
 
 test('finished private day shows the settled result by the header', async () => {

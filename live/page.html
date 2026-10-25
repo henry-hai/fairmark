@@ -51,6 +51,14 @@
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
     .status-dot.live { background: var(--text); animation: neon-dot 2.4s ease-in-out infinite; }
     .muted { color: var(--muted); }
+    .sport-tile { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: 9px; border-radius: 7px; background: var(--panel2); border: 1px solid var(--line); font-size: 13px; line-height: 1; vertical-align: -5px; }
+    .leg-chip .sport-tile { width: 20px; height: 20px; margin-right: 6px; border-radius: 5px; font-size: 11px; vertical-align: -4px; }
+    .book-tag { display: inline-block; margin-bottom: 5px; padding: 0 7px; border: 1px solid currentColor; border-radius: 6px; font-size: .66rem; font-weight: 700; line-height: 1.6; letter-spacing: .02em; color: var(--muted); }
+    .book-tag.spacer { visibility: hidden; }
+    .book-tag.dk { color: #53d337; } .book-tag.fd { color: #1493ff; } .book-tag.mgm { color: #c8a75d; }
+    .pricing-row td { vertical-align: top; }
+    .pricing-row .figure { display: block; }
+    @media (max-width: 600px) { .pricing-row .book-tag.spacer { display: none; } }
     .fold > summary { list-style: none; cursor: pointer; }
     .fold > summary::-webkit-details-marker { display: none; }
     .fold > summary h2::before { content: ''; display: inline-block; width: .38em; height: .38em; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin: 0 14px .22em 3px; vertical-align: middle; transition: transform .2s; }
@@ -150,7 +158,7 @@
   <section class="summary" aria-label="Totals" id="summary"></section>
   <section aria-labelledby="timeline-heading"><details class="fold" data-expand-key="section:timeline" open><summary class="section-top"><h2 id="timeline-heading">Timeline</h2><p>Live prices and final results from Kalshi.</p></summary><div class="filter-row"><div class="filters" id="timeline-filters" role="group" aria-label="Timeline status filters"></div><span class="chance-pill" id="day-chance-timeline">Day in progress</span></div><ol class="timeline" id="timeline"></ol></details></section>
   <section aria-labelledby="slips-heading"><details class="fold" data-expand-key="section:slips" open><summary class="section-top"><h2 id="slips-heading">Slips</h2><p>Profit is potential while a slip is alive.</p></summary><div class="filter-row"><div class="filters" id="slip-filters" role="group" aria-label="Slip status filters"></div><span class="chance-pill" id="day-chance-slips">Day in progress</span></div><div class="table-wrap"><table><thead><tr><th scope="col">Slip and legs</th><th scope="col">Stake</th><th scope="col">Max payout</th><th scope="col">Profit</th><th scope="col">Legs hit</th><th scope="col">Status</th></tr></thead><tbody id="slips"></tbody></table></div><p class="note">Profit is potential for alive slips and settled for won, dead or cashed out slips. Payout totals include only slips with a confirmed payout. Percentages use the midpoint of the Kalshi bid and ask.</p></details></section>
-  <section aria-labelledby="pricing-heading"><details class="fold" data-expand-key="section:pricing" open><summary class="section-top"><h2 id="pricing-heading">Price vs. Fair</h2><p>The sportsbook price keeps the vig, so it shows what a bettor actually pays. Fair is Pinnacle with the vig removed.</p></summary><div class="table-wrap"><table class="pricing-table"><thead><tr id="pricing-head"><th scope="col">Market and Pacific event start</th><th scope="col">Kalshi ask</th><th scope="col">Sportsbook</th><th scope="col">Pinnacle no-vig fair</th><th scope="col">Fee</th><th scope="col">Under fair</th></tr></thead><tbody id="pricing"></tbody></table></div></details></section>
+  <section aria-labelledby="pricing-heading"><details class="fold" data-expand-key="section:pricing" open><summary class="section-top"><h2 id="pricing-heading">Price vs. Fair</h2><p>The sportsbook price keeps the vig, so it shows what a bettor actually pays. Fair is Pinnacle with the vig removed.</p></summary><div class="table-wrap"><table class="pricing-table"><thead><tr id="pricing-head"><th scope="col">Market and Pacific event start</th><th scope="col">Kalshi ask</th><th scope="col">Sportsbook</th><th scope="col">Fair, no vig</th><th scope="col">Fee</th><th scope="col">Under fair</th></tr></thead><tbody id="pricing"></tbody></table></div></details></section>
   <section class="questions" id="common-questions"><h2>Common Questions</h2>
     <details data-expand-key="question:0"><summary>What is no-vig fair?</summary><p>Bovada implied chance shows what a sportsbook bettor actually pays, vig included. Pinnacle raw implied chance also includes vig. Pinnacle no-vig fair divides each outcome by the sum of every outcome, including all three in a three-way market. Fairmark compares that fair with Kalshi's ask plus its estimated taker fee.</p></details>
     <details data-expand-key="question:1"><summary>What do under fair and derived mean?</summary><p>Under fair is the estimated discount between the fee-adjusted Kalshi price and the fair reference. Derived means a prop chance was estimated from Pinnacle's main line because the exact threshold was not quoted.</p></details>
@@ -216,7 +224,17 @@
 
   const validChance = value => typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= 1
   // Every column always shows, so days read the same. Bovada odds and its vig-included chance share one cell.
-  const missing = '<span class="muted">—</span>'
+  const missing = '<span class="figure muted">—</span>'
+  const SPORT_ICONS = [[/^KX(NFL|NCAAF|SB)/, '🏈'], [/^KXNBA/, '🏀'], [/^KXUFC/, '🥊'], [/^KXNHL/, '🏒'], [/^KXMLB/, '⚾'], [/^KXCS2/, '🎮']]
+  const sportTile = ticker => { const icon = SPORT_ICONS.find(([pattern]) => pattern.test(ticker || ''))?.[1]; return icon ? `<span class="sport-tile" aria-hidden="true">${icon}</span>` : '' }
+  const BOOK_CLASS = { DraftKings: 'dk', FanDuel: 'fd', BetMGM: 'mgm', Pinnacle: 'pin' }
+  const bookTag = book => `<span class="book-tag ${BOOK_CLASS[book] || ''}">${escapeHtml(book)}</span>`
+  const spacer = '<span class="book-tag spacer" aria-hidden="true">.</span>'
+  function sportsbookOf(leg) {
+    if (typeof leg.book === 'string' && typeof leg.bookOdds === 'string' && validChance(leg.bookChance)) return { book: leg.book, odds: leg.bookOdds, chance: leg.bookChance }
+    if (typeof leg.bovadaOdds === 'string' && /^[+-]?\d+$/.test(leg.bovadaOdds) && validChance(leg.bovadaImplied)) return { book: 'Bovada', odds: leg.bovadaOdds, chance: leg.bovadaImplied }
+    return null
+  }
 
   function priceRow(leg, market, start) {
     const quoted = market[`${leg.side}_ask_dollars`] != null
@@ -225,11 +243,12 @@
     const fair = Number(leg.fair)
     const validFair = leg.fairSource === 'Pinnacle no-vig' && leg.fair != null && Number.isFinite(fair) && fair > 0 && fair <= 1
     const chance = value => pct(Number(value))
-    const odds = leg.bovadaOdds
-    const hasBovada = typeof odds === 'string' && /^[+-]?\d+$/.test(odds) && validChance(leg.bovadaImplied)
+    const book = sportsbookOf(leg)
     const fee = validAsk ? Math.ceil(0.07 * ask * (1 - ask) * 10000 - 1e-12) / 10000 : null
     const underFair = validAsk && validFair ? (fair - ask - fee) / fair : null
-    return `<tr><td class="outcome">${escapeHtml(leg.name)}<small>${escapeHtml(timelineStamp(start))} Pacific</small></td><td data-label="Kalshi ask">${validAsk ? priceCents(ask) : 'Price pending'}</td><td data-label="Sportsbook">${hasBovada ? `${escapeHtml(odds)}<small class="source">${chance(leg.bovadaImplied)} implied</small>` : missing}</td><td data-label="Pinnacle no-vig fair">${validFair ? pct(fair) : missing}</td><td data-label="Fee">${fee === null ? 'Price pending' : priceCents(fee)}</td><td data-label="Under fair">${underFair !== null ? `<span class="edge ${underFair < 0 ? 'negative' : ''}">${underFair > 0 ? '+' : ''}${pct(underFair)}</span>` : validFair ? 'Price pending' : missing}</td></tr>`
+    const figure = text => `<span class="figure">${text}</span>`
+    const under = underFair !== null ? figure(`<span class="edge ${underFair < 0 ? 'negative' : ''}">${underFair > 0 ? '+' : ''}${pct(underFair)}</span>`) : validFair ? figure('Price pending') : missing
+    return `<tr class="pricing-row"><td class="outcome">${sportTile(leg.ticker)}${escapeHtml(leg.name)}<small>${escapeHtml(timelineStamp(start))} Pacific</small></td><td data-label="Kalshi ask">${spacer}${figure(validAsk ? priceCents(ask) : 'Price pending')}</td><td data-label="Sportsbook">${book ? `${bookTag(book.book)}${figure(chance(book.chance))}<small class="source">${escapeHtml(book.odds)}</small>` : spacer + missing}</td><td data-label="Fair, no vig">${validFair ? bookTag('Pinnacle') + figure(pct(fair)) : spacer + missing}</td><td data-label="Fee">${spacer}${figure(fee === null ? 'Price pending' : priceCents(fee))}</td><td data-label="Under fair">${spacer}${under}</td></tr>`
   }
 
   for (const [group, elementId] of [['timeline', 'timeline-filters'], ['slips', 'slip-filters']]) {
@@ -303,7 +322,10 @@
     const needsRefresh = !settled && (stale || oldestAge === null || oldestAge > 360)
     document.getElementById('title').textContent = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(config.date + 'T12:00:00Z'))
     const updated = document.getElementById('updated')
-    updated.textContent = data.archived ? 'Pacific time. Archived day, final results.' : settled ? 'Pacific time. Every leg has settled.' : `Pacific time. ${oldestAge === null ? 'Waiting for market data' : needsRefresh ? 'Some market data is missing or stale' : 'Market data is current'}.`
+    // When the Mac poller sleeps, say plainly that prices stopped and since when, instead of a vague stale note.
+    const newestAge = marketAges.length ? Math.min(...marketAges) : null
+    const pausedSince = newestAge !== null && newestAge > 600 ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' }).format(new Date(Date.now() - newestAge * 1000)) : null
+    updated.textContent = data.archived ? 'Pacific time. Archived day, final results.' : settled ? 'Pacific time. Every leg has settled.' : pausedSince ? `Prices paused since ${pausedSince} PT, ${Math.round(newestAge / 60)} minutes ago. The Mac poller may be asleep.` : `Pacific time. ${oldestAge === null ? 'Waiting for market data' : needsRefresh ? 'Some market data is missing or stale' : 'Market data is current'}.`
     updated.className = needsRefresh && !data.archived ? 'intro warning' : 'intro'
     const days = Array.isArray(data.days) ? data.days : []
     document.getElementById('days').innerHTML = days.length > 1 ? days.map(day => `<button type="button" class="filter-chip" data-day="${escapeHtml(day)}" aria-pressed="${day === config.date}">${escapeHtml(dayLabel(day))}</button>`).join('') : ''
@@ -386,7 +408,7 @@
     const legChips = slip => `<div class="leg-chips">${slip.legs.map(name => {
       const state = states[name]
       const detail = state === 'won' ? '✓' : state === 'lost' ? '✕' : state === 'live' ? probabilities[name] === null ? 'Live' : `${(probabilities[name] * 100).toFixed(1)}%` : pacific(startFor(legsByName[name]))
-      return `<span class="leg-chip ${state}${slip.status === 'dead' && state === 'lost' ? ' killer' : ''}"><span class="leg-name">${escapeHtml(name)}</span><span class="leg-detail">${escapeHtml(detail)}${slip.status === 'dead' && state === 'lost' ? ' · Killed slip' : ''}</span></span>`
+      return `<span class="leg-chip ${state}${slip.status === 'dead' && state === 'lost' ? ' killer' : ''}"><span class="leg-name">${sportTile(legsByName[name]?.ticker)}${escapeHtml(name)}</span><span class="leg-detail">${escapeHtml(detail)}${slip.status === 'dead' && state === 'lost' ? ' · Killed slip' : ''}</span></span>`
     }).join('')}</div>`
     const rows = [...slips].filter(slip => filters.slips[slip.status]).sort((a, b) => slipOrder[a.status] - slipOrder[b.status] || (a.status === 'alive' ? nextStart(a) - nextStart(b) : 0) || a.name.localeCompare(b.name, undefined, { numeric: true })).map(slip => {
       const status = slip.status
@@ -426,7 +448,7 @@
       const riding = aliveRefs.reduce((total, ref) => total + ref.stake, 0)
       const links = aliveRefs.map(ref => `<a href="#slip-${encodeURIComponent(ref.name)}">#${escapeHtml(ref.name)}</a>`).join(' ')
       const displayStatus = nearly[leg.name] || state
-      return `<li class="timeline-item${state === 'won' || state === 'dead' ? ` ${state}-leg` : ''}"><div class="time">${escapeHtml(timelineStamp(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding. ${ageLabel}${links ? `. Slips ${links}` : ''}</div></div></li>`
+      return `<li class="timeline-item${state === 'won' || state === 'dead' ? ` ${state}-leg` : ''}"><div class="time">${escapeHtml(timelineStamp(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${sportTile(leg.ticker)}${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding. ${ageLabel}${links ? `. Slips ${links}` : ''}</div></div></li>`
     }).join('')
   }
 

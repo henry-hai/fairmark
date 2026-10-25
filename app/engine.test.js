@@ -181,8 +181,10 @@ test('page renders summary, timeline, slips, engine, checker and public palette'
   const { html, get } = page(); await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
   const pricing = rendered.match(/<section aria-labelledby="pricing-title">[\s\S]*?<\/section>/)?.[0]
-  assert.match(pricing, /Kalshi ask<\/th><th>Sportsbook<\/th><th>Pinnacle no-vig fair<\/th><th>Fee<\/th><th>Under fair/)
-  assert.match(pricing, /data-label="Sportsbook"><span class="muted">—<\/span>/)
+  assert.match(pricing, /Kalshi ask<\/th><th>Sportsbook<\/th><th>Fair, no vig<\/th><th>Fee<\/th><th>Under fair/)
+  assert.match(pricing, /data-label="Sportsbook"><span class="book-tag spacer" aria-hidden="true">\.<\/span><span class="figure muted">—<\/span>/)
+  assert.match(pricing, /<span class="book-tag pin">Pinnacle<\/span><span class="figure">84\.0%/)
+  assert.match(pricing, /<span class="sport-tile" aria-hidden="true">🥊<\/span>Carol to win/)
   assert.doesNotMatch(pricing, /Not available|undefined|N\/A|raw implied/)
   for (const expected of ['Profit now','Still riding','Max profit','Staked','Payout locked in','Max still possible','Timeline','Slips','Cashed Out','Placed','Price vs. Fair','Common Questions','100,000 trials']) assert.ok(rendered.includes(expected), expected)
   assert.equal(rendered.match(/<span class="chance-pill "><span class="status-dot live"><\/span>Live · Day profit chance [^<]+<\/span>/g)?.length, 2)
@@ -199,7 +201,11 @@ test('demo pricing keeps sportsbook columns when every leg has saved prices', as
   const { get } = page(data)
   await new Promise(resolve => setImmediate(resolve))
   const pricing = get('content').innerHTML.match(/<section aria-labelledby="pricing-title">[\s\S]*?<\/section>/)?.[0]
-  assert.match(pricing, /\+150<small class="source">40\.0% implied<\/small>.*75\.0%<small class="source">From prop line<\/small>/)
+  assert.match(pricing, /<span class="book-tag ">Bovada<\/span><span class="figure">40\.0%<\/span><small class="source">\+150<\/small>.*75\.0%<\/span><small class="source">From prop line<\/small>/)
+  Object.assign(data.legs[1], { book:'DraftKings', bookOdds:'-340', bookChance:.773 })
+  const second = page(data)
+  await new Promise(resolve => setImmediate(resolve))
+  assert.match(second.get('content').innerHTML, /<span class="book-tag dk">DraftKings<\/span><span class="figure">77\.3%<\/span><small class="source">-340<\/small>/)
   assert.doesNotMatch(pricing.match(/<tr class="pricing-row[^>]*>[\s\S]*?<\/tr>/g).find(row => row.includes('+150')), /N\/A|Not available/)
 })
 
