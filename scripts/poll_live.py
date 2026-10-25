@@ -295,6 +295,9 @@ def refresh_public_demo(kv, *, now=lambda: int(time.time() * 1000)):
             if updated_snapshot != previous_snapshot:
                 kv.put('snapshot:demo', updated_snapshot)
                 previous_snapshot = updated_snapshot
+        # A locked showcase day keeps its slips for good. Its quotes still refresh above.
+        if isinstance(previous, dict) and previous.get('locked') is True:
+            return
         previous_attempt = kv.get('demo:last_attempt')
         previous_at = previous_attempt.get('at') if isinstance(previous_attempt, dict) else None
         if isinstance(previous_at, (int, float)):

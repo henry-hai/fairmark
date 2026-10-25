@@ -229,6 +229,20 @@ def test_demo_build_is_throttled_for_30_minutes():
     assert [key for key, _ in kv.writes] == ['demo:last_attempt', 'demo:last_attempt']
 
 
+def test_locked_demo_refreshes_quotes_but_never_rebuilds():
+    kv = DemoKV({**demo_config(), 'locked': True})
+    builds = []
+    quotes = {'T1': {'ticker': 'T1', 'yes_bid_dollars': '0.55', 'yes_ask_dollars': '0.57'}}
+    with patch.object(poll_live, 'build_public_demo', side_effect=lambda at: builds.append(at) or demo_config('new')), \
+            patch.object(poll_live, 'fetch_demo_markets', return_value=quotes):
+        poll_live.refresh_public_demo(kv, now=lambda: 0)
+        poll_live.refresh_public_demo(kv, now=lambda: 31 * 60 * 1000)
+    assert builds == []
+    assert kv.values['config:demo']['locked'] is True
+    assert kv.values['snapshot:demo']['markets']['T1']['yes_bid_dollars'] == '0.55'
+    assert [key for key, _ in kv.writes] == ['snapshot:demo', 'snapshot:demo']
+
+
 def test_demo_quotes_refresh_inside_build_interval():
     kv = DemoKV(demo_config())
     builds = []
