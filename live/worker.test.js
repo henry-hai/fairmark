@@ -513,7 +513,7 @@ test('private pricing shows a dash for missing sportsbook prices', async () => {
   const unpriced = rows.match(/<tr class="pricing-row"><td class="outcome"><span class="leg-line"><span class="sport-tile"[^>]*>🏆<\/span>Unpriced[\s\S]*?<\/tr>/)[0]
   assert.equal(unpriced.match(/<span class="figure muted">—<\/span>/g).length, 3)
   assert.doesNotMatch(rows, /Not available|undefined|N\/A/)
-  assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">Fair, no vig<\/th><th scope="col">Fee<\/th><th scope="col">Under fair/)
+  assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">Fair, no vig<\/th><th scope="col">Fee<\/th><th scope="col">Edge after fee/)
   assert.match(html, /--bg: #091321; --panel: #112136; --panel2: #172a43/)
   assert.match(html, /font: 15px\/1\.55 Inter/)
   assert.match(html, /thead th \{[^}]*text-transform: uppercase; letter-spacing: \.07em/)

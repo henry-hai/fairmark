@@ -181,7 +181,7 @@ test('page renders summary, timeline, slips, engine, checker and public palette'
   const { html, get } = page(); await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
   const pricing = rendered.match(/<section aria-labelledby="pricing-title">[\s\S]*?<\/section>/)?.[0]
-  assert.match(pricing, /Kalshi ask<\/th><th>Sportsbook<\/th><th>Fair, no vig<\/th><th>Fee<\/th><th>Under fair/)
+  assert.match(pricing, /Kalshi ask<\/th><th>Sportsbook<\/th><th>Fair, no vig<\/th><th>Fee<\/th><th>Edge after fee/)
   assert.match(pricing, /data-label="Sportsbook"><span class="book-tag spacer" aria-hidden="true">\.<\/span><span class="figure muted">—<\/span>/)
   assert.match(pricing, /<span class="book-tag pin">Pinnacle<\/span><span class="figure">84\.0%/)
   assert.match(pricing, /<span class="sport-tile" aria-hidden="true">🥊<\/span>Carol to win/)
