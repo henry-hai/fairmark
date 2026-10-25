@@ -225,8 +225,13 @@
   const validChance = value => typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= 1
   // Every column always shows, so days read the same. Bovada odds and its vig-included chance share one cell.
   const missing = '<span class="figure muted">—</span>'
-  const SPORT_ICONS = [[/^KX(NFL|NCAAF|SB)/, '🏈'], [/^KXNBA/, '🏀'], [/^KXUFC/, '🥊'], [/^KXNHL/, '🏒'], [/^KXMLB/, '⚾'], [/^KXCS2/, '🎮']]
-  const sportTile = ticker => { const icon = SPORT_ICONS.find(([pattern]) => pattern.test(ticker || ''))?.[1]; return icon ? `<span class="sport-tile" aria-hidden="true">${icon}</span>` : '' }
+  const SPORT_ICONS = [[/^KX(NFL|NCAAF|SB|CFP)/, '🏈'], [/^KX(NBA|WNBA|NCAAMB|NCAAWB|NCAAB)/, '🏀'], [/^KX(UFC|BOXING|PFL)/, '🥊'],
+    [/^KX(NHL|NCAAHOCKEY)/, '🏒'], [/^KX(MLB|NCAABASEBALL|WBC)/, '⚾'], [/^KX(EPL|LALIGA|SERIEA|BUNDESLIGA|LIGUE1|UCL|UEL|UECL|MLS|EFL|LIGAMX|FIFA|WC|SOCCER|CLUBWC)/, '⚽'],
+    [/^KX(ATP|WTA|TENNIS|USOPEN|WIMBLEDON)/, '🎾'], [/^KX(PGA|LPGA|GOLF|LIV|MASTERS)/, '⛳'], [/^KX(F1|NASCAR|INDY|MOTOGP)/, '🏎️'],
+    [/^KX(CS2|VALORANT|LOL|DOTA|OW|RL|COD)/, '🎮'], [/^KX(CRICKET|IPL|T20)/, '🏏'], [/^KX(RUGBY|SIXNATIONS)/, '🏉'], [/^KXDARTS/, '🎯'],
+    [/^KX(HORSE|KENTUCKY|BELMONT|PREAKNESS)/, '🏇'], [/^KXVOLLEY/, '🏐'], [/^KX(TABLETENNIS|PINGPONG)/, '🏓'], [/^KXCHESS/, '♟️'], [/^KX(CYCLING|TOUR)/, '🚴']]
+  // Legs pushed after Oct 25 carry the icon from their Kalshi series tag. Older legs fall back to the ticker.
+  const sportTile = (ticker, icon) => `<span class="sport-tile" aria-hidden="true">${escapeHtml(icon || SPORT_ICONS.find(([pattern]) => pattern.test(ticker || ''))?.[1] || '🏆')}</span>`
   const BOOK_CLASS = { DraftKings: 'dk', FanDuel: 'fd', BetMGM: 'mgm', Pinnacle: 'pin' }
   const bookTag = book => `<span class="book-tag ${BOOK_CLASS[book] || ''}">${escapeHtml(book)}</span>`
   const spacer = '<span class="book-tag spacer" aria-hidden="true">.</span>'
@@ -248,7 +253,7 @@
     const underFair = validAsk && validFair ? (fair - ask - fee) / fair : null
     const figure = text => `<span class="figure">${text}</span>`
     const under = underFair !== null ? figure(`<span class="edge ${underFair < 0 ? 'negative' : ''}">${underFair > 0 ? '+' : ''}${pct(underFair)}</span>`) : validFair ? figure('Price pending') : missing
-    return `<tr class="pricing-row"><td class="outcome">${sportTile(leg.ticker)}${escapeHtml(leg.name)}<small>${escapeHtml(timelineStamp(start))} Pacific</small></td><td data-label="Kalshi ask">${spacer}${figure(validAsk ? priceCents(ask) : 'Price pending')}</td><td data-label="Sportsbook">${book ? `${bookTag(book.book)}${figure(chance(book.chance))}<small class="source">${escapeHtml(book.odds)}</small>` : spacer + missing}</td><td data-label="Fair, no vig">${validFair ? bookTag('Pinnacle') + figure(pct(fair)) : spacer + missing}</td><td data-label="Fee">${spacer}${figure(fee === null ? 'Price pending' : priceCents(fee))}</td><td data-label="Under fair">${spacer}${under}</td></tr>`
+    return `<tr class="pricing-row"><td class="outcome">${sportTile(leg.ticker, leg.icon)}${escapeHtml(leg.name)}<small>${escapeHtml(timelineStamp(start))} Pacific</small></td><td data-label="Kalshi ask">${spacer}${figure(validAsk ? priceCents(ask) : 'Price pending')}</td><td data-label="Sportsbook">${book ? `${bookTag(book.book)}${figure(chance(book.chance))}<small class="source">${escapeHtml(book.odds)}</small>` : spacer + missing}</td><td data-label="Fair, no vig">${validFair ? bookTag('Pinnacle') + figure(pct(fair)) : spacer + missing}</td><td data-label="Fee">${spacer}${figure(fee === null ? 'Price pending' : priceCents(fee))}</td><td data-label="Under fair">${spacer}${under}</td></tr>`
   }
 
   for (const [group, elementId] of [['timeline', 'timeline-filters'], ['slips', 'slip-filters']]) {
@@ -408,7 +413,7 @@
     const legChips = slip => `<div class="leg-chips">${slip.legs.map(name => {
       const state = states[name]
       const detail = state === 'won' ? '✓' : state === 'lost' ? '✕' : state === 'live' ? probabilities[name] === null ? 'Live' : `${(probabilities[name] * 100).toFixed(1)}%` : pacific(startFor(legsByName[name]))
-      return `<span class="leg-chip ${state}${slip.status === 'dead' && state === 'lost' ? ' killer' : ''}"><span class="leg-name">${sportTile(legsByName[name]?.ticker)}${escapeHtml(name)}</span><span class="leg-detail">${escapeHtml(detail)}${slip.status === 'dead' && state === 'lost' ? ' · Killed slip' : ''}</span></span>`
+      return `<span class="leg-chip ${state}${slip.status === 'dead' && state === 'lost' ? ' killer' : ''}"><span class="leg-name">${sportTile(legsByName[name]?.ticker, legsByName[name]?.icon)}${escapeHtml(name)}</span><span class="leg-detail">${escapeHtml(detail)}${slip.status === 'dead' && state === 'lost' ? ' · Killed slip' : ''}</span></span>`
     }).join('')}</div>`
     const rows = [...slips].filter(slip => filters.slips[slip.status]).sort((a, b) => slipOrder[a.status] - slipOrder[b.status] || (a.status === 'alive' ? nextStart(a) - nextStart(b) : 0) || a.name.localeCompare(b.name, undefined, { numeric: true })).map(slip => {
       const status = slip.status
@@ -448,7 +453,7 @@
       const riding = aliveRefs.reduce((total, ref) => total + ref.stake, 0)
       const links = aliveRefs.map(ref => `<a href="#slip-${encodeURIComponent(ref.name)}">#${escapeHtml(ref.name)}</a>`).join(' ')
       const displayStatus = nearly[leg.name] || state
-      return `<li class="timeline-item${state === 'won' || state === 'dead' ? ` ${state}-leg` : ''}"><div class="time">${escapeHtml(timelineStamp(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${sportTile(leg.ticker)}${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding. ${ageLabel}${links ? `. Slips ${links}` : ''}</div></div></li>`
+      return `<li class="timeline-item${state === 'won' || state === 'dead' ? ` ${state}-leg` : ''}"><div class="time">${escapeHtml(timelineStamp(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${sportTile(leg.ticker, leg.icon)}${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding. ${ageLabel}${links ? `. Slips ${links}` : ''}</div></div></li>`
     }).join('')
   }
 

@@ -263,7 +263,7 @@ test('timeline orders live then upcoming by start and counts only alive stakes',
   const markets = { 'T-4': { result: 'yes' }, 'T-5': { result: 'no' } }
   const document = await renderPage({ config: { date: config.date, legs, slips }, markets, stale: true }, { now: Date.parse('2026-10-17T19:00:00Z') })
   const timeline = document.getElementById('timeline').innerHTML
-  const positions = ['Earlier live', 'Later live', 'Near upcoming', 'Far upcoming'].map(name => timeline.indexOf(`<strong>${name} (`))
+  const positions = ['Earlier live', 'Later live', 'Near upcoming', 'Far upcoming'].map(name => timeline.indexOf(`</span>${name} (`))
   assert.ok(positions.every((position, index) => position >= 0 && (index === 0 || position > positions[index - 1])))
   assert.match(timeline, /Earlier live \(quote unavailable\).*?In 4 alive slips, \$780 riding/)
   const rows = document.getElementById('slips').innerHTML
@@ -305,7 +305,7 @@ test('timeline sorts by instant within each status and shows nearly won as won',
   const markets = { M: { yes_bid_dollars: '0.97', yes_ask_dollars: '0.99' }, W1: { result: 'yes' }, W2: { result: 'yes' } }
   const document = await renderPage({ config: { date: config.date, legs, slips }, markets, stale: false }, { now: Date.parse('2026-10-18T01:00:00Z') })
   const timeline = document.getElementById('timeline').innerHTML
-  const positions = ['Team D', 'Future 1', 'Future 2', 'Team E', 'Later won', 'Earlier won'].map(name => timeline.indexOf(`<strong>${name} (`))
+  const positions = ['Team D', 'Future 1', 'Future 2', 'Team E', 'Later won', 'Earlier won'].map(name => timeline.indexOf(`</span>${name} (`))
   assert.ok(positions.every((position, index) => position >= 0 && (index === 0 || position > positions[index - 1])))
   assert.match(timeline, /Team E \(98\.0%\)<\/strong><span class="badge won">won \(nearly\)/)
   assert.match(document.getElementById('slips').innerHTML, /id="slip-2".*?class="badge won"/)
@@ -510,7 +510,7 @@ test('private pricing shows a dash for missing sportsbook prices', async () => {
   const rows = document.getElementById('pricing').innerHTML
   assert.match(rows, /Quoted.*70\.0¢.*1\.5¢/)
   assert.match(rows, /Unpriced.*40\.0¢/)
-  const unpriced = rows.match(/<tr class="pricing-row"><td class="outcome">Unpriced[\s\S]*?<\/tr>/)[0]
+  const unpriced = rows.match(/<tr class="pricing-row"><td class="outcome"><span class="sport-tile"[^>]*>🏆<\/span>Unpriced[\s\S]*?<\/tr>/)[0]
   assert.equal(unpriced.match(/<span class="figure muted">—<\/span>/g).length, 3)
   assert.doesNotMatch(rows, /Not available|undefined|N\/A/)
   assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">Fair, no vig<\/th><th scope="col">Fee<\/th><th scope="col">Under fair/)

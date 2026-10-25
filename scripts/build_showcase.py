@@ -122,7 +122,7 @@ def price_leg(market: dict, events: list[dict]) -> dict | None:
         name = f'{player} {threshold}+ {words}'
     if book is None:
         return None
-    return {'id': market['ticker'], 'name': name, 'event': f"{event['away_team']} at {event['home_team']}",
+    return {'id': market['ticker'], 'icon': '🏈', 'name': name, 'event': f"{event['away_team']} at {event['home_team']}",
             'start': event['commence_time'], 'ask': ask, 'fee': fee(ask), 'fair': fair, 'fairSource': source,
             'underFair': (fair - ask - fee(ask)) / fair, **book}
 

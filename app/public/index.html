@@ -205,8 +205,13 @@
   const hour = value => new Intl.DateTimeFormat('en-US', { timeZone:'America/Los_Angeles', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }).format(new Date(value))
   const timelineStamp = value => new Intl.DateTimeFormat('en-US', { timeZone:'America/Los_Angeles', month:'2-digit', day:'2-digit', year:'2-digit', hour:'numeric', minute:'2-digit' }).format(new Date(value)).replace(', ', ' · ')
   const day = value => new Intl.DateTimeFormat('en-US', { timeZone:'UTC', weekday:'short', month:'short', day:'numeric' }).format(new Date(`${value}T12:00:00Z`))
-  const SPORT_ICONS = [[/^KX(NFL|NCAAF|SB)/, '🏈'], [/^KXNBA/, '🏀'], [/^KXUFC/, '🥊'], [/^KXNHL/, '🏒'], [/^KXMLB/, '⚾'], [/^KXCS2/, '🎮']]
-  const sportTile = id => { const icon = SPORT_ICONS.find(([pattern]) => pattern.test(id))?.[1]; return icon ? `<span class="sport-tile" aria-hidden="true">${icon}</span>` : '' }
+  const SPORT_ICONS = [[/^KX(NFL|NCAAF|SB|CFP)/, '🏈'], [/^KX(NBA|WNBA|NCAAMB|NCAAWB|NCAAB)/, '🏀'], [/^KX(UFC|BOXING|PFL)/, '🥊'],
+    [/^KX(NHL|NCAAHOCKEY)/, '🏒'], [/^KX(MLB|NCAABASEBALL|WBC)/, '⚾'], [/^KX(EPL|LALIGA|SERIEA|BUNDESLIGA|LIGUE1|UCL|UEL|UECL|MLS|EFL|LIGAMX|FIFA|WC|SOCCER|CLUBWC)/, '⚽'],
+    [/^KX(ATP|WTA|TENNIS|USOPEN|WIMBLEDON)/, '🎾'], [/^KX(PGA|LPGA|GOLF|LIV|MASTERS)/, '⛳'], [/^KX(F1|NASCAR|INDY|MOTOGP)/, '🏎️'],
+    [/^KX(CS2|VALORANT|LOL|DOTA|OW|RL|COD)/, '🎮'], [/^KX(CRICKET|IPL|T20)/, '🏏'], [/^KX(RUGBY|SIXNATIONS)/, '🏉'], [/^KXDARTS/, '🎯'],
+    [/^KX(HORSE|KENTUCKY|BELMONT|PREAKNESS)/, '🏇'], [/^KXVOLLEY/, '🏐'], [/^KX(TABLETENNIS|PINGPONG)/, '🏓'], [/^KXCHESS/, '♟️'], [/^KX(CYCLING|TOUR)/, '🚴']]
+  // Legs pushed after Oct 25 carry the icon from their Kalshi series tag. Older legs fall back to the ticker.
+  const sportTile = (id, icon) => `<span class="sport-tile" aria-hidden="true">${escapeHtml(icon || SPORT_ICONS.find(([pattern]) => pattern.test(id || ''))?.[1] || '🏆')}</span>`
   const legName = leg => { const sport = leg.id.match(/^KX(NCAAF|NFL|UFC|NBA|NHL|CS2)/)?.[1]; return sport ? `${leg.name} (${sport})` : leg.name }
   const edge = value => `<span class="edge ${value < 0 ? 'negative' : ''}">${value > 0 ? '+' : ''}${pct(value)}</span>`
   const badge = (status, label = status) => `<span class="badge ${status}">${label}</span>`
@@ -269,7 +274,7 @@
     const sportsbook = book ? `${tag(book.book)}<span class="figure">${pct(book.chance)}</span><small class="source">${escapeHtml(book.odds)}</small>` : spacer + dash
     const fair = hasFair ? `${tag('Pinnacle')}<span class="figure">${pct(leg.fair)}</span>${/Derived/.test(leg.fairSource) ? '<small class="source">From prop line</small>' : ''}` : spacer + dash
     const under = hasFair && Number.isFinite(leg.underFair) ? `<span class="figure">${edge(leg.underFair)}</span>` : dash
-    return `<tr class="pricing-row ${selected.has(leg.id) ? 'selected' : ''}" ><td class="outcome">${sportTile(leg.id)}${escapeHtml(legName(leg))}<small>${escapeHtml(leg.event)} · ${escapeHtml(stamp(leg.start))}</small></td><td data-label="Kalshi ask">${spacer}<span class="figure">${Number.isFinite(leg.ask) ? cents(leg.ask) : 'Price pending'}</span></td><td data-label="Sportsbook">${sportsbook}</td><td data-label="Fair, no vig">${fair}</td><td data-label="Fee">${spacer}<span class="figure">${Number.isFinite(leg.fee) ? cents(leg.fee) : 'Price pending'}</span></td><td data-label="Under fair">${spacer}${under}</td></tr>`
+    return `<tr class="pricing-row ${selected.has(leg.id) ? 'selected' : ''}" ><td class="outcome">${sportTile(leg.id, leg.icon)}${escapeHtml(legName(leg))}<small>${escapeHtml(leg.event)} · ${escapeHtml(stamp(leg.start))}</small></td><td data-label="Kalshi ask">${spacer}<span class="figure">${Number.isFinite(leg.ask) ? cents(leg.ask) : 'Price pending'}</span></td><td data-label="Sportsbook">${sportsbook}</td><td data-label="Fair, no vig">${fair}</td><td data-label="Fee">${spacer}<span class="figure">${Number.isFinite(leg.fee) ? cents(leg.fee) : 'Price pending'}</span></td><td data-label="Under fair">${spacer}${under}</td></tr>`
   }
   const filterButtons = group => Object.entries(filters[group]).map(([status, active]) => `<button type="button" class="filter-chip ${status}" data-group="${group}" data-filter="${status}" aria-pressed="${active}">${status === 'cashed' ? 'Cashed Out' : status[0].toUpperCase() + status.slice(1)}</button>`).join('')
   function renderChecker(data) {
@@ -373,7 +378,7 @@
       const leg = legs[id], status = state[id]
       const detail = status === 'won' ? '✓' : status === 'lost' ? '✕' : status === 'live' ? probability[id] === null ? 'Live' : pct(probability[id]) : hour(leg.start)
       const killer = slip.status === 'dead' && status === 'lost'
-      return `<span class="leg-chip ${status}${killer ? ' killer' : ''}" data-leg-id="${escapeHtml(id)}"><span class="leg-name">${sportTile(id)}${escapeHtml(legName(leg))}</span><b>${escapeHtml(detail)}${killer ? ' · Killed slip' : ''}</b></span>`
+      return `<span class="leg-chip ${status}${killer ? ' killer' : ''}" data-leg-id="${escapeHtml(id)}"><span class="leg-name">${sportTile(id, leg.icon)}${escapeHtml(legName(leg))}</span><b>${escapeHtml(detail)}${killer ? ' · Killed slip' : ''}</b></span>`
     }).join('')}</div>`
     const slipRows = slips.filter(slip => filters.slips[slip.status]).sort((a,b) => slipOrder[a.status] - slipOrder[b.status] || a.number - b.number).map(slip => {
       const received = slip.cashout?.amount || 0, fraction = slip.cashout ? Number(slip.cashout.remainingFraction) : 1
@@ -401,7 +406,7 @@
       const links = refs[leg.id].map(ref => `<button type="button" class="slip-link" data-jump="${escapeHtml(leg.id)}" data-slip="${ref.number}">#${ref.number}</button>`).join(' ')
       const age = Number.isFinite(market.fetchedAt) ? Math.floor((now - market.fetchedAt) / 1000) : null
       const detail = data.archived ? `Settled ${stamp(market.settlement_ts || market.close_time)}. Slips ${links}` : `In ${alive.length} alive ${alive.length === 1 ? 'slip' : 'slips'}, ${money(alive.reduce((sum, ref) => sum + ref.stake, 0))} riding. ${age === null ? 'No market data yet' : `Updated ${Math.max(0, age)} seconds ago${age > 360 ? ' (stale)' : ''}`}. Slips ${links}`
-      return `<li class="timeline-item${status === 'won' || status === 'dead' ? ` ${status}-leg` : ''}"><time>${escapeHtml(timelineStamp(leg.start))}</time><div><button type="button" class="leg-jump" data-jump="${escapeHtml(leg.id)}">${sportTile(leg.id)}${escapeHtml(legName(leg))} (${chance})</button>${badge(nearly[leg.id] || status, nearly[leg.id] ? `${nearly[leg.id]} (nearly)` : status)}<small class="references">${detail}</small></div></li>`
+      return `<li class="timeline-item${status === 'won' || status === 'dead' ? ` ${status}-leg` : ''}"><time>${escapeHtml(timelineStamp(leg.start))}</time><div><button type="button" class="leg-jump" data-jump="${escapeHtml(leg.id)}">${sportTile(leg.id, leg.icon)}${escapeHtml(legName(leg))} (${chance})</button>${badge(nearly[leg.id] || status, nearly[leg.id] ? `${nearly[leg.id]} (nearly)` : status)}<small class="references">${detail}</small></div></li>`
     }).join('')
     content.innerHTML = `<nav class="day-tabs" aria-label="Demo days">${[...data.days].sort().map(date => `<button type="button" class="filter-chip" data-day="${escapeHtml(date)}" aria-pressed="${date === data.date}">${day(date)}</button>`).join('')}</nav>
     ${trackRecord(data)}

@@ -18,6 +18,7 @@ from fairmark.input import Slip as SlateSlip
 from fairmark.markets import kalshi_quotes
 from fairmark.matching import best_quote
 from fairmark.pricing import implied_probability
+from fairmark.sports import sport_icon
 
 ROOT = Path(__file__).resolve().parents[1]
 API = clients.KALSHI
@@ -259,7 +260,8 @@ def build(day: date, slips: list[Slip], overrides: dict[str, Override]) -> tuple
                       'startSource': start_source,
                       'bovadaOdds': bovada_odds, 'bovadaImplied': bovada_implied,
                       'pinnacleRaw': pinnacle_raw, 'fair': fair,
-                      'fairSource': 'Pinnacle no-vig' if fair is not None else None})
+                      'fairSource': 'Pinnacle no-vig' if fair is not None else None,
+                      'icon': sport_icon(ticker)})
     for message in warnings + notes:
         print(message)
     config = {'date': day.isoformat(), 'slips': [
