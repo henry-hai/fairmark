@@ -543,7 +543,7 @@ test('finished private day shows the settled result by the header', async () => 
     legs:[{ name:'Winner', ticker:'W', side:'yes', start:'2026-10-17T17:00:00Z' }],
     slips:[{ name:'1', stake:'10', payout:'20', legs:['Winner'] }] },
     markets:{ W:{ result:'yes' } }, stale:false })
-  for (const id of ['day-chance-timeline', 'day-chance-slips']) assert.equal(document.getElementById(id).innerHTML, 'Day won · +$10.00')
+  for (const id of ['day-chance-timeline', 'day-chance-slips']) assert.equal(document.getElementById(id).innerHTML, 'Day Won · +$10.00')
 })
 
 test('private sorts full cash-outs before dead slips', async () => {

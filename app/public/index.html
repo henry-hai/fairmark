@@ -373,7 +373,7 @@
     const maxProfit = totals.locked + totals.possible - totals.staked
     const finished = slips.every(slip => slip.status !== 'alive')
     const chanceTone = finished ? totals.now < 0 ? 'negative' : totals.now > 0 ? 'positive' : '' : ''
-    const chanceText = finished ? `Day ${totals.now >= 0 ? 'won' : 'lost'} · ${signed(totals.now)}` : `Live · Day profit chance ${pct(data.portfolio.dayProfitChance)}`
+    const chanceText = finished ? `Day ${totals.now >= 0 ? 'Won' : 'Lost'} · ${signed(totals.now)}` : `Live · Chance Day Ends in Profit ${pct(data.portfolio.dayProfitChance)}`
     const chancePill = `<span class="chance-pill ${chanceTone}">${finished ? '' : '<span class="status-dot live"></span>'}${escapeHtml(chanceText)}</span>`
     const stat = (label, value, signedValue = false) => `<div class="metric"><span class="label">${label}</span><strong class="${signedValue ? value < 0 ? 'negative' : value > 0 ? 'positive' : '' : ''}">${signedValue ? signed(value) : money(value)}</strong></div>`
     const slipOrder = { alive:0, won:1, cashed:2, dead:3 }
