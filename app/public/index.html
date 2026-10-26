@@ -48,6 +48,7 @@
     .section-top { display:flex; justify-content:space-between; gap:18px; align-items:baseline; margin:48px 0 17px }
     .section-top p { color:var(--muted); font-size:.86rem; max-width:590px }
     .muted { color:var(--muted) }
+    .total-row th,.total-row td { font-weight:800; border-top:2px solid var(--line) }
     .book-tag { display:inline-block; margin-bottom:5px; padding:0 7px; border:1px solid currentColor; border-radius:6px; font-size:.66rem; font-weight:700; line-height:1.6; letter-spacing:.02em; color:var(--muted) }
     .book-tag.spacer { visibility:hidden }
     .book-tag.dk { color:#53d337 } .book-tag.fd { color:#1493ff } .book-tag.mgm { color:#c8a75d }
@@ -371,10 +372,19 @@
       for (const id of new Set(slip.legIds)) refs[id].push({ number:slip.number, status:slip.status, stake:remainingStake })
     }
     const maxProfit = totals.locked + totals.possible - totals.staked
-    const finished = slips.every(slip => slip.status !== 'alive')
+    // A futures slip (a leg starting days after the slate) doesn't hold the day open. The day's
+    // result shows once its own games settle, with a note for each future still riding.
+    const dayEnd = Date.parse(`${data.date}T23:59:59-08:00`) + 3 * 86400000
+    const isFuture = slip => slip.legIds.some(id => Date.parse(legs[id].start) > dayEnd)
+    const openFutures = slips.filter(slip => slip.status === 'alive' && isFuture(slip)).length
+    const finished = slips.every(slip => slip.status !== 'alive' || isFuture(slip))
+    const futureNote = openFutures ? ` · ${openFutures} Future${openFutures > 1 ? 's' : ''} Open` : ''
     const chanceTone = finished ? totals.now < 0 ? 'negative' : totals.now > 0 ? 'positive' : '' : ''
-    const chanceText = finished ? `Day ${totals.now >= 0 ? 'Won' : 'Lost'} · ${signed(totals.now)}` : `Live · Chance Day Ends in Profit ${pct(data.portfolio.dayProfitChance)}`
+    const chanceText = finished ? `Day ${totals.now >= 0 ? 'Won' : 'Lost'} · ${signed(totals.now)}${futureNote}` : `Live · Chance Day Ends in Profit ${pct(data.portfolio.dayProfitChance)}`
     const chancePill = `<span class="chance-pill ${chanceTone}">${finished ? '' : '<span class="status-dot live"></span>'}${escapeHtml(chanceText)}</span>`
+    const legsHit = slips.reduce((sum, slip) => sum + slip.legIds.filter(id => state[id] === 'won').length, 0)
+    const legCount = slips.reduce((sum, slip) => sum + slip.legIds.length, 0)
+    const totalRow = `<tr class="total-row"><th scope="row">Total</th><td data-label="Stake">${money(totals.staked)}</td><td data-label="Max payout">${money(totals.locked + totals.possible)}</td><td data-label="Profit"><span class="profit-value ${totals.now < 0 ? 'negative' : totals.now > 0 ? 'positive' : ''}">${signed(totals.now)}</span></td><td data-label="Legs hit">${legsHit}/${legCount}</td><td data-label="Status">${finished ? `Day ${totals.now >= 0 ? 'Won' : 'Lost'}${futureNote}` : 'Live'}</td></tr>`
     const stat = (label, value, signedValue = false) => `<div class="metric"><span class="label">${label}</span><strong class="${signedValue ? value < 0 ? 'negative' : value > 0 ? 'positive' : '' : ''}">${signedValue ? signed(value) : money(value)}</strong></div>`
     const slipOrder = { alive:0, won:1, cashed:2, dead:3 }
     const legChips = slip => `<div class="leg-chips">${slip.legIds.map(id => {
@@ -416,7 +426,7 @@
     <section class="metrics" aria-label="Day summary">${stat('Profit now', totals.now, true)}${stat('Still riding', totals.riding)}${stat('Max profit', maxProfit, true)}${stat('Staked', totals.staked)}${stat('Payout locked in', totals.locked)}${stat('Max still possible', totals.possible)}</section>
     <section aria-labelledby="pricing-title">${fold('pricing')}<summary class="section-top"><h2 id="pricing-title">Price vs. Fair</h2><p>Prices captured ${escapeHtml(stamp(data.asOf))}. The sportsbook price keeps the vig, so it shows what a bettor actually pays. Fair is Pinnacle with the vig removed.</p></summary><div class="table-wrap"><table><thead><tr><th>Market and Pacific event start</th><th>Kalshi ask</th><th>Sportsbook</th><th>Fair, no vig</th><th>Fee</th><th>Edge after fee</th></tr></thead><tbody>${data.legs.map(priceRow).join('')}</tbody></table></div></details></section>
     <section aria-labelledby="timeline-title">${fold('timeline')}<summary class="section-top"><h2 id="timeline-title">Timeline</h2><p>${data.archived ? 'Final market results from Kalshi.' : 'Live prices and final results from Kalshi.'}</p></summary><div class="filter-row"><div class="filters" aria-label="Timeline filters">${filterButtons('timeline', data.archived)}</div>${chancePill}</div><ol class="timeline">${timelineRows || '<li class="empty">No legs in these filters.</li>'}</ol></details></section>
-    <section aria-labelledby="slips-title">${fold('slips')}<summary class="section-top"><h2 id="slips-title">Slips</h2><p>${data.archived ? 'Hypothetical entries priced before play and settled from Kalshi results.' : 'Hypothetical entries. Profit is potential while a slip is alive.'}</p></summary><div class="filter-row"><div class="filters" aria-label="Slip filters">${filterButtons('slips', data.archived)}</div>${chancePill}</div><div class="table-wrap"><table class="slips-table"><thead><tr><th>Slip and legs</th><th>Stake</th><th>Max payout</th><th>Profit</th><th>Legs hit</th><th>Status</th></tr></thead><tbody>${slipRows || '<tr><td colspan="6">No slips in these filters.</td></tr>'}</tbody></table></div></details></section>
+    <section aria-labelledby="slips-title">${fold('slips')}<summary class="section-top"><h2 id="slips-title">Slips</h2><p>${data.archived ? 'Hypothetical entries priced before play and settled from Kalshi results.' : 'Hypothetical entries. Profit is potential while a slip is alive.'}</p></summary><div class="filter-row"><div class="filters" aria-label="Slip filters">${filterButtons('slips', data.archived)}</div></div><div class="table-wrap"><table class="slips-table"><thead><tr><th>Slip and legs</th><th>Stake</th><th>Max payout</th><th>Profit</th><th>Legs hit</th><th>Status</th></tr></thead><tbody>${slipRows || '<tr><td colspan="6">No slips in these filters.</td></tr>'}${totalRow}</tbody></table></div></details></section>
     
     ${commonQuestions()}`
     renderChecker(data)

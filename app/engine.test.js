@@ -187,7 +187,8 @@ test('page renders summary, timeline, slips, engine, checker and public palette'
   assert.match(pricing, /<span class="sport-tile" aria-hidden="true">🥊<\/span>Carol to win/)
   assert.doesNotMatch(pricing, /Not available|undefined|N\/A|raw implied/)
   for (const expected of ['Profit now','Still riding','Max profit','Staked','Payout locked in','Max still possible','Timeline','Slips','Cashed Out','Placed','Price vs. Fair','Common Questions','100,000 trials']) assert.ok(rendered.includes(expected), expected)
-  assert.equal(rendered.match(/<span class="chance-pill "><span class="status-dot live"><\/span>Live · Chance Day Ends in Profit [^<]+<\/span>/g)?.length, 2)
+  assert.equal(rendered.match(/<span class="chance-pill "><span class="status-dot live"><\/span>Live · Chance Day Ends in Profit [^<]+<\/span>/g)?.length, 1)
+  assert.match(rendered, /<tr class="total-row"><th scope="row">Total<\/th>/)
   assert.ok(!rendered.includes('Live model ·'))
   assert.ok(!rendered.includes('Unused') && !rendered.includes('Lists'))
   for (const token of ['#091321','#5ff5c8','#ff7b8a','30%']) assert.ok(html.includes(token))
@@ -231,7 +232,8 @@ test('finished demo day shows final result instead of modeled morning chance', a
   const { get } = page(data)
   await new Promise(resolve => setImmediate(resolve))
   const pills = get('content').innerHTML.match(/<span class="chance-pill[^"]*">[^<]*<\/span>/g)
-  assert.deepEqual(pills, Array(2).fill('<span class="chance-pill negative">Day Lost · −$100.00</span>'))
+  assert.deepEqual(pills, ['<span class="chance-pill negative">Day Lost · −$100.00</span>'])
+  assert.match(get('content').innerHTML, /<td data-label="Status">Day Lost<\/td><\/tr>/)
 })
 
 test('demo sorts full cash-outs before dead slips', async () => {

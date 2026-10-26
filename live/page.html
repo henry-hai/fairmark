@@ -51,6 +51,7 @@
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
     .status-dot.live { background: var(--text); animation: neon-dot 2.4s ease-in-out infinite; }
     .muted { color: var(--muted); }
+    .total-row th, .total-row td { font-weight: 800; border-top: 2px solid var(--line); }
     .sport-tile { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: 9px; border-radius: 7px; background: var(--panel2); border: 1px solid var(--line); font-size: 13px; line-height: 1; vertical-align: -5px; }
     .leg-chip .leg-name { display: inline-flex; align-items: center; }
     .leg-line { display: flex; align-items: center; }
@@ -161,7 +162,7 @@
   <section class="summary" aria-label="Totals" id="summary"></section>
   <section aria-labelledby="pricing-heading"><details class="fold" data-expand-key="section:pricing" open><summary class="section-top"><h2 id="pricing-heading">Price vs. Fair</h2><p>The sportsbook price keeps the vig, so it shows what a bettor actually pays. Fair is Pinnacle with the vig removed.</p></summary><div class="table-wrap"><table class="pricing-table"><thead><tr id="pricing-head"><th scope="col">Market and Pacific event start</th><th scope="col">Kalshi ask</th><th scope="col">Sportsbook</th><th scope="col">Fair, no vig</th><th scope="col">Fee</th><th scope="col">Edge after fee</th></tr></thead><tbody id="pricing"></tbody></table></div></details></section>
   <section aria-labelledby="timeline-heading"><details class="fold" data-expand-key="section:timeline" open><summary class="section-top"><h2 id="timeline-heading">Timeline</h2><p>Live prices and final results from Kalshi.</p></summary><div class="filter-row"><div class="filters" id="timeline-filters" role="group" aria-label="Timeline status filters"></div><span class="chance-pill" id="day-chance-timeline">Day in Progress</span></div><ol class="timeline" id="timeline"></ol></details></section>
-  <section aria-labelledby="slips-heading"><details class="fold" data-expand-key="section:slips" open><summary class="section-top"><h2 id="slips-heading">Slips</h2><p>Profit is potential while a slip is alive.</p></summary><div class="filter-row"><div class="filters" id="slip-filters" role="group" aria-label="Slip status filters"></div><span class="chance-pill" id="day-chance-slips">Day in Progress</span></div><div class="table-wrap"><table><thead><tr><th scope="col">Slip and legs</th><th scope="col">Stake</th><th scope="col">Max payout</th><th scope="col">Profit</th><th scope="col">Legs hit</th><th scope="col">Status</th></tr></thead><tbody id="slips"></tbody></table></div><p class="note">Profit is potential for alive slips and settled for won, dead or cashed out slips. Payout totals include only slips with a confirmed payout. Percentages use the midpoint of the Kalshi bid and ask.</p></details></section>
+  <section aria-labelledby="slips-heading"><details class="fold" data-expand-key="section:slips" open><summary class="section-top"><h2 id="slips-heading">Slips</h2><p>Profit is potential while a slip is alive.</p></summary><div class="filter-row"><div class="filters" id="slip-filters" role="group" aria-label="Slip status filters"></div></div><div class="table-wrap"><table><thead><tr><th scope="col">Slip and legs</th><th scope="col">Stake</th><th scope="col">Max payout</th><th scope="col">Profit</th><th scope="col">Legs hit</th><th scope="col">Status</th></tr></thead><tbody id="slips"></tbody></table></div><p class="note">Profit is potential for alive slips and settled for won, dead or cashed out slips. Payout totals include only slips with a confirmed payout. Percentages use the midpoint of the Kalshi bid and ask.</p></details></section>
   <section class="questions" id="common-questions"><h2>Common Questions</h2>
     <details data-expand-key="question:0"><summary>What is no-vig fair?</summary><p>Bovada implied chance shows what a sportsbook bettor actually pays, vig included. Pinnacle raw implied chance also includes vig. Pinnacle no-vig fair divides each outcome by the sum of every outcome, including all three in a three-way market. Fairmark compares that fair with Kalshi's ask plus its estimated taker fee.</p></details>
     <details data-expand-key="question:1"><summary>What do edge after fee and "From prop line" mean?</summary><p>Edge after fee is how far below fair you paid, as a share of fair: (fair − Kalshi ask − fee) ÷ fair. A 76¢ ask with a 1.3¢ fee against an 82.8% fair is (82.8 − 76 − 1.3) ÷ 82.8 = 6.6%. Negative means the leg cost more than fair. "From prop line" means Pinnacle didn't quote Kalshi's exact threshold, so the fair was carried over from Pinnacle's main line for that player.</p></details>
@@ -396,11 +397,20 @@
       for (const name of new Set(slip.legs)) refs[name].push({ name: slip.name, status: slip.status, stake: remainingStake })
     }
     const now = profit.missingFinishedPayout ? null : profit.now
-    const finished = slips.every(slip => slip.status !== 'alive')
-    for (const chancePill of ['day-chance-timeline', 'day-chance-slips'].map(id => document.getElementById(id))) {
-      chancePill.className = `chance-pill ${finished && now !== null ? now < 0 ? 'negative' : now > 0 ? 'positive' : '' : ''}`
-      chancePill.innerHTML = finished ? escapeHtml(now === null ? 'Final Result Pending' : `Day ${now >= 0 ? 'Won' : 'Lost'} · ${profitValue(now)}`) : '<span class="status-dot live"></span>Live · Day in Progress'
-    }
+    // A futures slip (a leg starting days after the slate) doesn't hold the day open. The day's
+    // result shows once its own games settle, with a note for each future still riding.
+    const dayEnd = Date.parse(`${config.date}T23:59:59-08:00`) + 3 * 86400000
+    const isFuture = slip => slip.legs.some(name => Date.parse(startFor(config.legs.find(leg => leg.name === name) || {})) > dayEnd)
+    const openFutures = slips.filter(slip => slip.status === 'alive' && isFuture(slip)).length
+    const finished = slips.every(slip => slip.status !== 'alive' || isFuture(slip))
+    const futureNote = openFutures ? ` · ${openFutures} Future${openFutures > 1 ? 's' : ''} Open` : ''
+    const dayResult = now === null ? 'Final Result Pending' : `Day ${now >= 0 ? 'Won' : 'Lost'}`
+    const chancePill = document.getElementById('day-chance-timeline')
+    chancePill.className = `chance-pill ${finished && now !== null ? now < 0 ? 'negative' : now > 0 ? 'positive' : '' : ''}`
+    chancePill.innerHTML = finished ? escapeHtml(now === null ? dayResult : `${dayResult} · ${profitValue(now)}${futureNote}`) : '<span class="status-dot live"></span>Live · Day in Progress'
+    const legsHit = slips.reduce((sum, slip) => sum + slip.legs.filter(name => states[name] === 'won').length, 0)
+    const legCount = slips.reduce((sum, slip) => sum + slip.legs.length, 0)
+    const totalRow = `<tr class="total-row"><th scope="row">Total</th><td data-label="Stake">${money(totals.staked)}</td><td data-label="Max payout">${money(totals.locked + totals.possible)}</td><td data-label="Profit">${now === null ? 'Not entered' : profitValue(now)}</td><td data-label="Legs hit">${legsHit}/${legCount}</td><td data-label="Status">${finished ? `${dayResult}${futureNote}` : 'Live'}</td></tr>`
     const maxProfit = profit.missingFinishedPayout || profit.missingRidingPayout ? null :
       totals.locked + totals.possible - totals.staked - depositFee
     const trackerStat = (label, value, missingLabel = 'Not entered') => `<div class="stat"><span>${label}</span><strong class="${profitClass(value)}">${value === null ? missingLabel : profitValue(value)}</strong></div>`
@@ -441,7 +451,7 @@
     })
     document.getElementById('summary').innerHTML = [['Staked', totals.staked], ['Payout locked in', totals.locked], ['Max still possible', totals.possible]].map(([label, amount]) => `<div class="stat"><span>${label}</span><strong>${money(amount)}</strong></div>`).join('')
     renderFilters()
-    document.getElementById('slips').innerHTML = rows.join('')
+    document.getElementById('slips').innerHTML = rows.length ? rows.join('') + totalRow : ''
     document.getElementById('pricing').innerHTML = config.legs.map(leg => priceRow(leg, markets[leg.ticker] || {}, startFor(leg))).join('')
     const timelineStatus = leg => states[leg.name] === 'lost' || (states[leg.name] !== 'won' && !refs[leg.name].some(ref => ref.status === 'alive')) ? 'dead' : states[leg.name]
     const timelineOrder = { live: 0, upcoming: 1, won: 2, dead: 3 }

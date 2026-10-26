@@ -543,7 +543,16 @@ test('finished private day shows the settled result by the header', async () => 
     legs:[{ name:'Winner', ticker:'W', side:'yes', start:'2026-10-17T17:00:00Z' }],
     slips:[{ name:'1', stake:'10', payout:'20', legs:['Winner'] }] },
     markets:{ W:{ result:'yes' } }, stale:false })
-  for (const id of ['day-chance-timeline', 'day-chance-slips']) assert.equal(document.getElementById(id).innerHTML, 'Day Won · +$10.00')
+  assert.equal(document.getElementById('day-chance-timeline').innerHTML, 'Day Won · +$10.00')
+  assert.match(document.getElementById('slips').innerHTML, /<tr class="total-row"><th scope="row">Total<\/th><td data-label="Stake">\$10\.00<\/td>.*<td data-label="Status">Day Won<\/td><\/tr>$/)
+})
+
+test('a futures slip does not hold the private day open', async () => {
+  const document = await renderPage({ config:{ date:config.date,
+    legs:[{ name:'Winner', ticker:'W', side:'yes', start:'2026-10-17T17:00:00Z' }, { name:'Champion', ticker:'C', side:'yes', start:'2027-02-14T23:30:00Z' }],
+    slips:[{ name:'1', stake:'10', payout:'20', legs:['Winner'] }, { name:'2', stake:'10', payout:'60', legs:['Champion'] }] },
+    markets:{ W:{ result:'yes' }, C:{ yes_bid_dollars:'0.16', yes_ask_dollars:'0.17' } }, stale:false })
+  assert.equal(document.getElementById('day-chance-timeline').innerHTML, 'Day Won · +$10.00 · 1 Future Open')
 })
 
 test('private sorts full cash-outs before dead slips', async () => {
