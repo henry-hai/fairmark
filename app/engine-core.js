@@ -25,6 +25,8 @@ function publicView(config, snapshot, days, archived) {
     ...(typeof leg.priceAt === 'string' ? { priceAt: leg.priceAt } : {}),
     ask: leg.ask, fair: leg.fair, fee: leg.fee, underFair: leg.underFair,
     fairSource: leg.fairSource,
+    icon: typeof leg.icon === 'string' ? leg.icon : null,
+    book: leg.book ?? null, bookOdds: leg.bookOdds ?? null, bookChance: leg.bookChance ?? null,
     bovadaOdds: leg.bovadaOdds ?? null,
     bovadaImplied: leg.bovadaImplied ?? null,
     pinnacleRaw: leg.pinnacleRaw ?? null

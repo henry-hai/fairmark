@@ -130,6 +130,23 @@ def test_push_rejects_schedule_without_start_provenance(tmp_path, capsys):
         push.validate_schedule(payload)
 
 
+def test_prop_never_takes_the_moneyline_as_its_fair(monkeypatch):
+    ticker = 'KXNFLPASSYDS-26OCT25SFATL-SFBPURDY13-175'
+    start = datetime.fromisoformat('2026-10-25T17:00:00+00:00')
+    kalshi = Quote('Kalshi', 'Brock Purdy: 175+', 'prop', 'San Francisco at Atlanta', 'KXNFLPASSYDS', start, 'prop', ticker)
+    moneyline = Quote('Pinnacle', 'San Francisco 49ers', 'moneyline', 'San Francisco 49ers vs Atlanta Falcons', 'football', start, 'winner', 'pin:ml:sf', odds='-142', probability=.59)
+    quotes = {'Kalshi': [], 'Pinnacle': [moneyline], 'Bovada': []}
+    monkeypatch.setattr(module, 'fetch_quotes', lambda *args, **kwargs: (quotes, []))
+    monkeypatch.setattr(module, 'pinned_events', lambda *args: ([{'event_ticker': 'E', 'title': 'San Francisco at Atlanta'}], {}))
+    monkeypatch.setattr(module, 'kalshi_quotes', lambda *args: [kalshi])
+    monkeypatch.setattr(module, 'resolve', lambda *args: ({'Brock Purdy: 175+': {'Pinnacle': None, 'Bovada': None, 'Kalshi': kalshi}}, []))
+    monkeypatch.setattr(module, 'same_matchup', lambda left, right: True)
+    slips = [module.Slip('one', Decimal('10'), None, ('Brock Purdy: 175+',))]
+    leg = module.build(date(2026, 10, 25), slips, {'brock purdy: 175+': module.Override(ticker, 'yes')})[0]['legs'][0]
+    assert leg['start'] == start.isoformat()
+    assert leg['fair'] is None
+
+
 def test_push_checks_bovada_implied_and_pinnacle_fair_source(tmp_path):
     import pytest
     push_path = script.with_name('push_slips.py')

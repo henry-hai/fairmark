@@ -18,6 +18,7 @@ from fairmark.input import Slip as SlateSlip
 from fairmark.markets import kalshi_quotes
 from fairmark.matching import best_quote
 from fairmark.pricing import implied_probability
+from fairmark.sports import sport_icon
 
 ROOT = Path(__file__).resolve().parents[1]
 API = clients.KALSHI
@@ -232,6 +233,15 @@ def build(day: date, slips: list[Slip], overrides: dict[str, Override]) -> tuple
                     and sport_family(quote.sport) == sport_family(kalshi.sport)
                     and same_matchup(kalshi.event, quote.event))
 
+        # Any line from the same game can supply the start time, but only the leg's own matched
+        # line may supply a price. Otherwise a prop picks up the moneyline as its fair.
+        def priced(matched, source):
+            if valid_start(matched):
+                return matched
+            same_game = [quote for quote in by_source[source] if valid_start(quote)]
+            return best_quote(kalshi.outcome, same_game)[0] if same_game else None
+
+        priced_pinnacle, priced_bovada = priced(pinnacle, 'Pinnacle'), priced(bovada, 'Bovada')
         if not valid_start(pinnacle):
             pinnacle = next((quote for quote in by_source['Pinnacle'] if valid_start(quote)), None)
         if not valid_start(bovada):
@@ -244,10 +254,12 @@ def build(day: date, slips: list[Slip], overrides: dict[str, Override]) -> tuple
             start_source = ('Pinnacle' if pinnacle and pinnacle.start else 'Bovada' if bovada and bovada.start else 'estimated')
         if start is None:
             raise ValueError(f'No start time for {name}')
-        selected_pinnacle = selected_quote(pinnacle, by_source['Pinnacle'], side)
-        selected_bovada = selected_quote(bovada, by_source['Bovada'], side)
+        # Soccer has a draw, so the other side of a two-way sportsbook line is not this leg's "No".
+        three_way = sport_family(kalshi.sport) == 'soccer'
+        selected_pinnacle = selected_quote(priced_pinnacle, by_source['Pinnacle'], side)
+        selected_bovada = None if three_way and side == 'no' else selected_quote(priced_bovada, by_source['Bovada'], side)
         fair = (selected_pinnacle.probability if selected_pinnacle and selected_pinnacle.probability is not None
-                else 1 - pinnacle.probability if side == 'no' and pinnacle and pinnacle.probability is not None
+                else 1 - priced_pinnacle.probability if side == 'no' and priced_pinnacle and priced_pinnacle.probability is not None
                 else None)
         pinnacle_raw = implied_probability(selected_pinnacle.odds) if selected_pinnacle and selected_pinnacle.odds else None
         bovada_odds = selected_bovada.odds if selected_bovada else None
@@ -259,7 +271,8 @@ def build(day: date, slips: list[Slip], overrides: dict[str, Override]) -> tuple
                       'startSource': start_source,
                       'bovadaOdds': bovada_odds, 'bovadaImplied': bovada_implied,
                       'pinnacleRaw': pinnacle_raw, 'fair': fair,
-                      'fairSource': 'Pinnacle no-vig' if fair is not None else None})
+                      'fairSource': 'Pinnacle no-vig' if fair is not None else None,
+                      'icon': sport_icon(ticker)})
     for message in warnings + notes:
         print(message)
     config = {'date': day.isoformat(), 'slips': [

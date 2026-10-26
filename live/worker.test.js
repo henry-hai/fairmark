@@ -263,7 +263,7 @@ test('timeline orders live then upcoming by start and counts only alive stakes',
   const markets = { 'T-4': { result: 'yes' }, 'T-5': { result: 'no' } }
   const document = await renderPage({ config: { date: config.date, legs, slips }, markets, stale: true }, { now: Date.parse('2026-10-17T19:00:00Z') })
   const timeline = document.getElementById('timeline').innerHTML
-  const positions = ['Earlier live', 'Later live', 'Near upcoming', 'Far upcoming'].map(name => timeline.indexOf(`<strong>${name} (`))
+  const positions = ['Earlier live', 'Later live', 'Near upcoming', 'Far upcoming'].map(name => timeline.indexOf(`</span>${name} (`))
   assert.ok(positions.every((position, index) => position >= 0 && (index === 0 || position > positions[index - 1])))
   assert.match(timeline, /Earlier live \(quote unavailable\).*?In 4 alive slips, \$780 riding/)
   const rows = document.getElementById('slips').innerHTML
@@ -305,7 +305,7 @@ test('timeline sorts by instant within each status and shows nearly won as won',
   const markets = { M: { yes_bid_dollars: '0.97', yes_ask_dollars: '0.99' }, W1: { result: 'yes' }, W2: { result: 'yes' } }
   const document = await renderPage({ config: { date: config.date, legs, slips }, markets, stale: false }, { now: Date.parse('2026-10-18T01:00:00Z') })
   const timeline = document.getElementById('timeline').innerHTML
-  const positions = ['Team D', 'Future 1', 'Future 2', 'Team E', 'Later won', 'Earlier won'].map(name => timeline.indexOf(`<strong>${name} (`))
+  const positions = ['Team D', 'Future 1', 'Future 2', 'Team E', 'Later won', 'Earlier won'].map(name => timeline.indexOf(`</span>${name} (`))
   assert.ok(positions.every((position, index) => position >= 0 && (index === 0 || position > positions[index - 1])))
   assert.match(timeline, /Team E \(98\.0%\)<\/strong><span class="badge won">won \(nearly\)/)
   assert.match(document.getElementById('slips').innerHTML, /id="slip-2".*?class="badge won"/)
@@ -403,23 +403,24 @@ test('expanded slip state survives rerenders, filter changes, reloads, and stora
   const data = { config: pageConfig, markets: { [config.legs[0].ticker]: { result: 'no' } }, stale: false }
   const storage = memoryStorage()
   const first = await renderPage(data, { storage })
-  first.toggleDetail('slip:4', true)
+  assert.match(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
+  first.toggleDetail('slip:4', false)
   first.rerender(data)
-  assert.match(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
-  assert.doesNotMatch(first.getElementById('slips').innerHTML, /data-expand-key="slip:16" open/)
+  assert.doesNotMatch(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
+  assert.match(first.getElementById('slips').innerHTML, /data-expand-key="slip:16" open/)
   first.clickFilter('slips', 'dead')
   first.clickFilter('slips', 'dead')
-  assert.match(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
+  assert.doesNotMatch(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
   const second = await renderPage(data, { storage })
-  assert.match(second.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
-  second.toggleDetail('slip:4', false)
-  second.rerender(data)
   assert.doesNotMatch(second.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
+  second.toggleDetail('slip:4', true)
+  second.rerender(data)
+  assert.match(second.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
   const broken = { getItem() { throw new Error('blocked') }, setItem() { throw new Error('blocked') } }
   const fallback = await renderPage(data, { storage: broken })
-  fallback.toggleDetail('slip:16', true)
+  fallback.toggleDetail('slip:16', false)
   fallback.rerender(data)
-  assert.match(fallback.getElementById('slips').innerHTML, /data-expand-key="slip:16" open/)
+  assert.doesNotMatch(fallback.getElementById('slips').innerHTML, /data-expand-key="slip:16" open/)
 })
 
 test('filters persist and storage failures do not break rendering', async () => {
@@ -479,11 +480,11 @@ test('all-time net includes a cashed-out archive and a day still riding', async 
   const current = await (await worker.fetch(new Request('https://example.com/api/schedule?k=private'), env)).json()
   const document = await renderPage(current)
   const record = document.getElementById('track-record').innerHTML
-  assert.match(record, /All-time net \+\$1\.00.*2 days tracked/)
+  assert.match(record, /Total, 2 days<\/span><span class="positive">\+\$1\.00/)
   assert.match(record, /2026-10-16.*\+\$1\.00.*2026-10-17.*\+\$0\.00/)
   assert.match(document.getElementById('profit-tracker').innerHTML, /Still riding<\/span><strong>\$20\.00/)
   const archive = await (await worker.fetch(new Request(`https://example.com/api/schedule?k=private&d=${oldDate}`), env)).json()
-  assert.match((await renderPage(archive)).getElementById('track-record').innerHTML, /All-time net \+\$1\.00/)
+  assert.match((await renderPage(archive)).getElementById('track-record').innerHTML, /Total, \d days?<\/span><span class="positive">\+\$1\.00/)
   assert.ok(reads.includes(`day:${oldDate}`))
   assert.deepEqual(writes, [])
 })
@@ -510,10 +511,10 @@ test('private pricing shows a dash for missing sportsbook prices', async () => {
   const rows = document.getElementById('pricing').innerHTML
   assert.match(rows, /Quoted.*70\.0¢.*1\.5¢/)
   assert.match(rows, /Unpriced.*40\.0¢/)
-  const unpriced = rows.match(/<tr><td class="outcome">Unpriced[\s\S]*?<\/tr>/)[0]
-  assert.equal(unpriced.match(/<span class="muted">—<\/span>/g).length, 3)
+  const unpriced = rows.match(/<tr class="pricing-row"><td class="outcome"><span class="leg-line"><span class="sport-tile"[^>]*>🏆<\/span>Unpriced[\s\S]*?<\/tr>/)[0]
+  assert.equal(unpriced.match(/<span class="figure muted">—<\/span>/g).length, 3)
   assert.doesNotMatch(rows, /Not available|undefined|N\/A/)
-  assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">Pinnacle no-vig fair<\/th><th scope="col">Fee<\/th><th scope="col">Under fair/)
+  assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">Fair, no vig<\/th><th scope="col">Fee<\/th><th scope="col">Edge after fee/)
   assert.match(html, /--bg: #091321; --panel: #112136; --panel2: #172a43/)
   assert.match(html, /font: 15px\/1\.55 Inter/)
   assert.match(html, /thead th \{[^}]*text-transform: uppercase; letter-spacing: \.07em/)
@@ -523,8 +524,19 @@ test('private pricing shows a dash for missing sportsbook prices', async () => {
 test('private pricing keeps all saved sportsbook columns', async () => {
   const leg = { name:'Quoted', ticker:'Q', side:'yes', start:'2026-10-17T17:00:00Z', fair:0.75, fairSource:'Pinnacle no-vig', bovadaOdds:'+150', bovadaImplied:0.4, pinnacleRaw:0.8 }
   const document = await renderPage({ config:{ date:config.date, legs:[leg], slips:[{ name:'1', stake:'10', payout:'20', legs:['Quoted'] }] }, markets:{ Q:{ yes_ask_dollars:'0.70' } }, stale:false })
-  assert.match(document.getElementById('pricing').innerHTML, /Quoted.*70\.0¢.*\+150<small class="source">40\.0% implied<\/small>.*75\.0%.*1\.5¢.*\+4\.7%/)
+  assert.match(document.getElementById('pricing').innerHTML, /Quoted.*70\.0¢.*<span class="book-tag ">Bovada<\/span><span class="figure">40\.0%<\/span><small class="source">\+150<\/small>.*<span class="book-tag pin">Pinnacle<\/span><span class="figure">75\.0%.*1\.5¢.*\+4\.7%/)
   assert.doesNotMatch(document.getElementById('pricing').innerHTML, /—/)
+  const drafted = await renderPage({ config:{ date:config.date, legs:[{ ...leg, book:'DraftKings', bookOdds:'-340', bookChance:.773 }], slips:[{ name:'1', stake:'10', payout:'20', legs:['Quoted'] }] }, markets:{ Q:{ yes_ask_dollars:'0.70' } }, stale:false })
+  assert.match(drafted.getElementById('pricing').innerHTML, /<span class="book-tag dk">DraftKings<\/span><span class="figure">77\.3%<\/span><small class="source">-340<\/small>/)
+})
+
+test('private page says when prices paused because the poller slept', async () => {
+  const now = Date.parse('2026-10-17T03:00:00Z')
+  const document = await renderPage({ config:{ date:config.date,
+    legs:[{ name:'Later', ticker:'L', side:'yes', start:'2026-10-17T05:00:00Z' }],
+    slips:[{ name:'1', stake:'10', payout:'20', legs:['Later'] }] },
+    markets:{ L:{ yes_ask_dollars:'0.70', fetchedAt:now - 30 * 60 * 1000 } }, stale:true }, { now })
+  assert.match(document.getElementById('updated').textContent, /^Prices paused since .+ PT, 30 minutes ago\. The Mac poller may be asleep\.$/)
 })
 
 test('finished private day shows the settled result by the header', async () => {
@@ -532,7 +544,17 @@ test('finished private day shows the settled result by the header', async () => 
     legs:[{ name:'Winner', ticker:'W', side:'yes', start:'2026-10-17T17:00:00Z' }],
     slips:[{ name:'1', stake:'10', payout:'20', legs:['Winner'] }] },
     markets:{ W:{ result:'yes' } }, stale:false })
-  for (const id of ['day-chance-timeline', 'day-chance-slips']) assert.equal(document.getElementById(id).innerHTML, 'Day won · +$10.00')
+  assert.equal(document.getElementById('day-chance-timeline').innerHTML, "Day's Games Settled")
+  assert.equal(document.getElementById('day-result-slips').innerHTML, 'Day Won · +$10.00')
+  assert.match(document.getElementById('slips').innerHTML, /<tr class="total-row"><th scope="row">Total<\/th><td data-label="Stake">\$10\.00<\/td>.*<td data-label="Status">Day Won<\/td><\/tr>$/)
+})
+
+test('a futures slip does not hold the private day open', async () => {
+  const document = await renderPage({ config:{ date:config.date,
+    legs:[{ name:'Winner', ticker:'W', side:'yes', start:'2026-10-17T17:00:00Z' }, { name:'Champion', ticker:'C', side:'yes', start:'2027-02-14T23:30:00Z' }],
+    slips:[{ name:'1', stake:'10', payout:'20', legs:['Winner'] }, { name:'2', stake:'10', payout:'60', legs:['Champion'] }] },
+    markets:{ W:{ result:'yes' }, C:{ yes_bid_dollars:'0.16', yes_ask_dollars:'0.17' } }, stale:false })
+  assert.equal(document.getElementById('day-result-slips').innerHTML, 'Day Won · +$10.00 · 1 Future Open')
 })
 
 test('private sorts full cash-outs before dead slips', async () => {

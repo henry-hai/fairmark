@@ -67,7 +67,7 @@ test('modeled track record sums cashed-out and riding demo days without private 
   const { get } = page(body)
   await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
-  assert.match(rendered, /Net profit, all days.*\+\$20\.00.*2 days/)
+  assert.match(rendered, /<li class="total"><span>Total, 2 days<\/span><span class="positive">\+\$20\.00/)
   assert.match(rendered, /2026-10-20.*\+\$20\.00/)
   assert.match(rendered, /Still riding.*\$100\.00/)
 })
@@ -139,7 +139,7 @@ test('zero demo profit has no positive class', async () => {
   await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
   assert.match(rendered, /Profit now<\/span><strong class="">\+\$0\.00/)
-  assert.match(rendered, /Net profit, all days <span class="">\+\$0\.00/)
+  assert.match(rendered, /Total, 1 day<\/span><span class="">\+\$0\.00/)
   assert.match(rendered, /class="profit-value ">\+\$0\.00/)
 })
 
@@ -155,15 +155,15 @@ test('dead demo slips show losing legs and keep their own expanded state', async
   await new Promise(resolve => setImmediate(resolve))
   let rendered = get('content').innerHTML
   assert.match(html, /\.leg-chip\.lost \.leg-name \{ text-decoration:line-through \}/)
-  assert.match(rendered, /id="slip-1".*?<details data-expand-key="slip:1"><summary>#1 <span class="badge dead">dead<\/span><\/summary>.*?leg-chip lost killer.*?Killed slip/)
-  listeners.toggle({ target:{ matches:() => true, dataset:{ expandKey:'slip:1' }, open:true } })
+  assert.match(rendered, /id="slip-1".*?<details data-expand-key="slip:1" open><summary>#1 <span class="badge dead">dead<\/span><\/summary>.*?leg-chip lost killer.*?Killed slip/)
+  listeners.toggle({ target:{ matches:() => true, dataset:{ expandKey:'slip:1' }, open:false } })
   rerender()
   rendered = get('content').innerHTML
-  assert.match(rendered, /data-expand-key="slip:1" open/)
-  assert.doesNotMatch(rendered, /data-expand-key="slip:2" open/)
+  assert.doesNotMatch(rendered, /data-expand-key="slip:1" open/)
+  assert.match(rendered, /data-expand-key="slip:2" open/)
   const reloaded = page(data, storage)
   await new Promise(resolve => setImmediate(resolve))
-  assert.match(reloaded.get('content').innerHTML, /data-expand-key="slip:1" open/)
+  assert.doesNotMatch(reloaded.get('content').innerHTML, /data-expand-key="slip:1" open/)
 })
 
 test('archived net and daily list exclude later days', async () => {
@@ -172,7 +172,7 @@ test('archived net and daily list exclude later days', async () => {
   const { get } = page(data)
   await new Promise(resolve => setImmediate(resolve))
   const record = get('content').innerHTML.match(/<div class="track-record">[\s\S]*?<\/details><\/div>/)?.[0]
-  assert.match(record, /Net profit, all days.*\+\$30\.00.*2 days/)
+  assert.match(record, /Total, 2 days<\/span><span class="positive">\+\$30\.00/)
   assert.match(record, /2026-10-19.*2026-10-20/)
   assert.doesNotMatch(record, /2026-10-21/)
 })
@@ -181,11 +181,15 @@ test('page renders summary, timeline, slips, engine, checker and public palette'
   const { html, get } = page(); await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
   const pricing = rendered.match(/<section aria-labelledby="pricing-title">[\s\S]*?<\/section>/)?.[0]
-  assert.match(pricing, /Kalshi ask<\/th><th>Sportsbook<\/th><th>Pinnacle no-vig fair<\/th><th>Fee<\/th><th>Under fair/)
-  assert.match(pricing, /data-label="Sportsbook"><span class="muted">—<\/span>/)
+  assert.match(pricing, /Kalshi ask<\/th><th>Sportsbook<\/th><th>Fair, no vig<\/th><th>Fee<\/th><th>Edge after fee/)
+  assert.match(pricing, /data-label="Sportsbook"><span class="book-tag spacer" aria-hidden="true">\.<\/span><span class="figure muted">—<\/span>/)
+  assert.match(pricing, /<span class="book-tag pin">Pinnacle<\/span><span class="figure">84\.0%/)
+  assert.match(pricing, /<span class="sport-tile" aria-hidden="true">🥊<\/span>Carol to win/)
   assert.doesNotMatch(pricing, /Not available|undefined|N\/A|raw implied/)
   for (const expected of ['Profit now','Still riding','Max profit','Staked','Payout locked in','Max still possible','Timeline','Slips','Cashed Out','Placed','Price vs. Fair','Common Questions','100,000 trials']) assert.ok(rendered.includes(expected), expected)
-  assert.equal(rendered.match(/<span class="chance-pill "><span class="status-dot live"><\/span>Live · Day profit chance [^<]+<\/span>/g)?.length, 2)
+  assert.equal(rendered.match(/<span class="chance-pill"><span class="status-dot live"><\/span>Live · Chance Day Ends in Profit: [^<]+<\/span>/g)?.length, 1)
+  assert.equal(rendered.match(/<span class="chance-pill [^"]*"><span class="status-dot live"><\/span>Live · Profit Now [^<]+<\/span>/g)?.length, 1)
+  assert.match(rendered, /<tr class="total-row"><th scope="row">Total<\/th>/)
   assert.ok(!rendered.includes('Live model ·'))
   assert.ok(!rendered.includes('Unused') && !rendered.includes('Lists'))
   for (const token of ['#091321','#5ff5c8','#ff7b8a','30%']) assert.ok(html.includes(token))
@@ -199,7 +203,11 @@ test('demo pricing keeps sportsbook columns when every leg has saved prices', as
   const { get } = page(data)
   await new Promise(resolve => setImmediate(resolve))
   const pricing = get('content').innerHTML.match(/<section aria-labelledby="pricing-title">[\s\S]*?<\/section>/)?.[0]
-  assert.match(pricing, /\+150<small class="source">40\.0% implied<\/small>.*75\.0%<small class="source">From prop line<\/small>/)
+  assert.match(pricing, /<span class="book-tag ">Bovada<\/span><span class="figure">40\.0%<\/span><small class="source">\+150<\/small>.*75\.0%<\/span><small class="source">From prop line<\/small>/)
+  Object.assign(data.legs[1], { book:'DraftKings', bookOdds:'-340', bookChance:.773 })
+  const second = page(data)
+  await new Promise(resolve => setImmediate(resolve))
+  assert.match(second.get('content').innerHTML, /<span class="book-tag dk">DraftKings<\/span><span class="figure">77\.3%<\/span><small class="source">-340<\/small>/)
   assert.doesNotMatch(pricing.match(/<tr class="pricing-row[^>]*>[\s\S]*?<\/tr>/g).find(row => row.includes('+150')), /N\/A|Not available/)
 })
 
@@ -225,7 +233,9 @@ test('finished demo day shows final result instead of modeled morning chance', a
   const { get } = page(data)
   await new Promise(resolve => setImmediate(resolve))
   const pills = get('content').innerHTML.match(/<span class="chance-pill[^"]*">[^<]*<\/span>/g)
-  assert.deepEqual(pills, Array(2).fill('<span class="chance-pill negative">Day lost · −$100.00</span>'))
+  assert.deepEqual(pills.slice(1), ['<span class="chance-pill negative">Day Lost · −$100.00</span>'])
+  assert.match(pills[0], /^<span class="chance-pill">Chance Day Ends in Profit: [\d.]+%<\/span>$/)
+  assert.match(get('content').innerHTML, /<td data-label="Status">Day Lost<\/td><\/tr>/)
 })
 
 test('demo sorts full cash-outs before dead slips', async () => {
