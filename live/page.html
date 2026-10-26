@@ -88,7 +88,10 @@
     th:first-child, td:first-child { text-align: left; }
     thead th { color: var(--muted); background: var(--panel2); text-transform: uppercase; letter-spacing: .07em; font-size: .67rem; font-weight: 700; white-space: nowrap; }
     tbody tr:last-child > * { border-bottom: 0; }
-    .dead-slip summary { cursor: pointer; font-weight: 700; }
+    .dead-slip summary { cursor: pointer; font-weight: 700; list-style: none; }
+    .dead-slip summary::-webkit-details-marker { display: none; }
+    .dead-slip summary::before { content: ''; display: inline-block; width: .42em; height: .42em; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin: 0 10px .2em 2px; vertical-align: middle; transition: transform .2s; }
+    .dead-slip details:not([open]) summary::before { transform: rotate(-45deg); }
     .dead-slip summary .badge { margin-left: 8px; }
     .dead-slip-content { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 10px 0 0 20px; font-size: .9rem; }
     .dead-slip-content span { overflow-wrap: anywhere; }
@@ -111,7 +114,10 @@
     .track-record { margin-top: 10px; color: var(--muted); font-size: .83rem; }
     .track-record strong { color: var(--text); font-size: .95rem; }
     .track-record details { margin-top: 4px; }
-    .track-record summary { cursor: pointer; }
+    .track-record summary { cursor: pointer; list-style: none; }
+    .track-record summary::-webkit-details-marker { display: none; }
+    .track-record summary::before { content: ''; display: inline-block; width: .42em; height: .42em; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin: 0 10px .2em 2px; vertical-align: middle; transition: transform .2s; }
+    .track-record details:not([open]) summary::before { transform: rotate(-45deg); }
     .track-record ul { margin: 7px 0 0; padding-left: 20px; }
     .track-record li { display: flex; gap: 12px; max-width: 230px; justify-content: space-between; }
     .price-note { color: var(--muted); font-size: .86rem; margin: -4px 0 14px; }
@@ -162,7 +168,7 @@
   <section class="summary" aria-label="Totals" id="summary"></section>
   <section aria-labelledby="pricing-heading"><details class="fold" data-expand-key="section:pricing" open><summary class="section-top"><h2 id="pricing-heading">Price vs. Fair</h2><p>The sportsbook price keeps the vig, so it shows what a bettor actually pays. Fair is Pinnacle with the vig removed.</p></summary><div class="table-wrap"><table class="pricing-table"><thead><tr id="pricing-head"><th scope="col">Market and Pacific event start</th><th scope="col">Kalshi ask</th><th scope="col">Sportsbook</th><th scope="col">Fair, no vig</th><th scope="col">Fee</th><th scope="col">Edge after fee</th></tr></thead><tbody id="pricing"></tbody></table></div></details></section>
   <section aria-labelledby="timeline-heading"><details class="fold" data-expand-key="section:timeline" open><summary class="section-top"><h2 id="timeline-heading">Timeline</h2><p>Live prices and final results from Kalshi.</p></summary><div class="filter-row"><div class="filters" id="timeline-filters" role="group" aria-label="Timeline status filters"></div><span class="chance-pill" id="day-chance-timeline">Day in Progress</span></div><ol class="timeline" id="timeline"></ol></details></section>
-  <section aria-labelledby="slips-heading"><details class="fold" data-expand-key="section:slips" open><summary class="section-top"><h2 id="slips-heading">Slips</h2><p>Profit is potential while a slip is alive.</p></summary><div class="filter-row"><div class="filters" id="slip-filters" role="group" aria-label="Slip status filters"></div></div><div class="table-wrap"><table><thead><tr><th scope="col">Slip and legs</th><th scope="col">Stake</th><th scope="col">Max payout</th><th scope="col">Profit</th><th scope="col">Legs hit</th><th scope="col">Status</th></tr></thead><tbody id="slips"></tbody></table></div><p class="note">Profit is potential for alive slips and settled for won, dead or cashed out slips. Payout totals include only slips with a confirmed payout. Percentages use the midpoint of the Kalshi bid and ask.</p></details></section>
+  <section aria-labelledby="slips-heading"><details class="fold" data-expand-key="section:slips" open><summary class="section-top"><h2 id="slips-heading">Slips</h2><p>Profit is potential while a slip is alive.</p></summary><div class="filter-row"><div class="filters" id="slip-filters" role="group" aria-label="Slip status filters"></div><span class="chance-pill" id="day-result-slips">Live · Profit Now</span></div><div class="table-wrap"><table><thead><tr><th scope="col">Slip and legs</th><th scope="col">Stake</th><th scope="col">Max payout</th><th scope="col">Profit</th><th scope="col">Legs hit</th><th scope="col">Status</th></tr></thead><tbody id="slips"></tbody></table></div><p class="note">Profit is potential for alive slips and settled for won, dead or cashed out slips. Payout totals include only slips with a confirmed payout. Percentages use the midpoint of the Kalshi bid and ask.</p></details></section>
   <section class="questions" id="common-questions"><h2>Common Questions</h2>
     <details data-expand-key="question:0"><summary>What is no-vig fair?</summary><p>Bovada implied chance shows what a sportsbook bettor actually pays, vig included. Pinnacle raw implied chance also includes vig. Pinnacle no-vig fair divides each outcome by the sum of every outcome, including all three in a three-way market. Fairmark compares that fair with Kalshi's ask plus its estimated taker fee.</p></details>
     <details data-expand-key="question:1"><summary>What do edge after fee and "From prop line" mean?</summary><p>Edge after fee is how far below fair you paid, as a share of fair: (fair − Kalshi ask − fee) ÷ fair. A 76¢ ask with a 1.3¢ fee against an 82.8% fair is (82.8 − 76 − 1.3) ÷ 82.8 = 6.6%. Negative means the leg cost more than fair. "From prop line" means Pinnacle didn't quote Kalshi's exact threshold, so the fair was carried over from Pinnacle's main line for that player.</p></details>
@@ -317,7 +323,7 @@
     const nets = days.map(day => ({ date: day.date, net: dailyNet(day) }))
     const allTime = nets.some(day => day.net === null) ? null : nets.reduce((sum, day) => sum + day.net, 0)
     const rows = nets.map(day => `<li><span>${escapeHtml(day.date)}</span><span class="${profitClass(day.net)}">${profitValue(day.net)}</span></li>`).join('')
-    document.getElementById('track-record').innerHTML = `<strong>All-time net ${profitValue(allTime)}</strong> · ${nets.length} ${nets.length === 1 ? 'day' : 'days'} tracked<details data-expand-key="track-record"${expanded.get('track-record') ? ' open' : ''}><summary>Daily Results</summary><ul>${rows}</ul></details>`
+    document.getElementById('track-record').innerHTML = `<strong>All-time net ${profitValue(allTime)}</strong> · ${nets.length} ${nets.length === 1 ? 'day' : 'days'} tracked<details data-expand-key="track-record"${expanded.get('track-record') === false ? '' : ' open'}><summary>Daily Results</summary><ul>${rows}</ul></details>`
   }
 
   function render(data) {
@@ -405,9 +411,12 @@
     const finished = slips.every(slip => slip.status !== 'alive' || isFuture(slip))
     const futureNote = openFutures ? ` · ${openFutures} Future${openFutures > 1 ? 's' : ''} Open` : ''
     const dayResult = now === null ? 'Final Result Pending' : `Day ${now >= 0 ? 'Won' : 'Lost'}`
-    const chancePill = document.getElementById('day-chance-timeline')
-    chancePill.className = `chance-pill ${finished && now !== null ? now < 0 ? 'negative' : now > 0 ? 'positive' : '' : ''}`
-    chancePill.innerHTML = finished ? escapeHtml(now === null ? dayResult : `${dayResult} · ${profitValue(now)}${futureNote}`) : '<span class="status-dot live"></span>Live · Day in Progress'
+    // Timeline pill: whether the day's games are still going. Slips pill: the money, live or final.
+    const liveDot = '<span class="status-dot live"></span>'
+    document.getElementById('day-chance-timeline').innerHTML = finished ? "Day's Games Settled" : `${liveDot}Live · Day in Progress`
+    const resultPill = document.getElementById('day-result-slips')
+    resultPill.className = `chance-pill ${finished && now !== null ? now < 0 ? 'negative' : now > 0 ? 'positive' : '' : ''}`
+    resultPill.innerHTML = finished ? escapeHtml(now === null ? dayResult : `${dayResult} · ${profitValue(now)}${futureNote}`) : `${liveDot}Live · Profit Now ${now === null ? 'pending' : escapeHtml(profitValue(now))}`
     const legsHit = slips.reduce((sum, slip) => sum + slip.legs.filter(name => states[name] === 'won').length, 0)
     const legCount = slips.reduce((sum, slip) => sum + slip.legs.length, 0)
     const totalRow = `<tr class="total-row"><th scope="row">Total</th><td data-label="Stake">${money(totals.staked)}</td><td data-label="Max payout">${money(totals.locked + totals.possible)}</td><td data-label="Profit">${now === null ? 'Not entered' : profitValue(now)}</td><td data-label="Legs hit">${legsHit}/${legCount}</td><td data-label="Status">${finished ? `${dayResult}${futureNote}` : 'Live'}</td></tr>`
@@ -446,7 +455,7 @@
       const timeLabel = times ? `<span class="slip-times">${escapeHtml(times)}</span>` : ''
       const cashoutLabel = cashout && fraction ? `<span class="cashout-detail">Cashed Out: ${money(received)}, ${(fraction * 100).toFixed(0)}% still riding</span>` : ''
       const payoutCell = cashout && !fraction ? `${money(received)}<span class="cashout-detail">Cashed Out</span>` : remainingPayout === null ? 'Not entered' : money(remainingPayout)
-      if (status === 'dead') return `<tr class="dead-slip" id="slip-${encodeURIComponent(slip.name)}"><td colspan="6"><details data-expand-key="slip:${encodeURIComponent(slip.name)}"${expanded.get(`slip:${encodeURIComponent(slip.name)}`) ? ' open' : ''}><summary>#${escapeHtml(slip.name)} ${badge(status)}</summary>${timeLabel}${legChips(slip)}<div class="dead-slip-content"><span>Stake ${money(stake)}</span><span>Max payout ${remainingPayout === null ? 'Not entered' : money(remainingPayout)}</span><span>Profit ${profitLabel}</span><span>Legs hit ${hit}/${slip.legs.length}</span>${cashoutLabel}</div></details></td></tr>`
+      if (status === 'dead') return `<tr class="dead-slip" id="slip-${encodeURIComponent(slip.name)}"><td colspan="6"><details data-expand-key="slip:${encodeURIComponent(slip.name)}"${expanded.get(`slip:${encodeURIComponent(slip.name)}`) === false ? '' : ' open'}><summary>#${escapeHtml(slip.name)} ${badge(status)}</summary>${timeLabel}${legChips(slip)}<div class="dead-slip-content"><span>Stake ${money(stake)}</span><span>Max payout ${remainingPayout === null ? 'Not entered' : money(remainingPayout)}</span><span>Profit ${profitLabel}</span><span>Legs hit ${hit}/${slip.legs.length}</span>${cashoutLabel}</div></details></td></tr>`
       return `<tr id="slip-${encodeURIComponent(slip.name)}"><th scope="row" class="slip-id">#${escapeHtml(slip.name)}${timeLabel}${legChips(slip)}${cashoutLabel}</th><td data-label="Stake">${money(stake)}</td><td data-label="Max payout">${payoutCell}</td><td data-label="Profit">${profitLabel}</td><td data-label="Legs hit">${hit}/${slip.legs.length}</td><td data-label="Status">${badge(status, status === 'cashed' ? 'Cashed Out' : status)}</td></tr>`
     })
     document.getElementById('summary').innerHTML = [['Staked', totals.staked], ['Payout locked in', totals.locked], ['Max still possible', totals.possible]].map(([label, amount]) => `<div class="stat"><span>${label}</span><strong>${money(amount)}</strong></div>`).join('')

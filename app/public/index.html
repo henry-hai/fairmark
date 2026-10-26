@@ -18,7 +18,7 @@
     .header-actions { display:flex; align-items:center; gap:24px }
     .theme-toggle { border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:99px; padding:6px 12px; font:inherit; font-size:.78rem; cursor:pointer }
     .theme-toggle:hover { color:var(--text); border-color:var(--muted) }
-    .eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:.16em; font-size:.69rem; font-weight:700 }
+    .eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:.16em; font-size:.85rem; font-weight:700 }
     h1 { font-size:clamp(2.2rem,5vw,3.85rem); line-height:1.1; letter-spacing:-.05em; max-width:770px; margin:17px 0 20px; font-weight:600 }
     h2 { font-size:1.45rem; letter-spacing:-.03em; margin:0 }
     p { margin:0 }
@@ -33,7 +33,10 @@
     .track-record { margin-top:10px; color:var(--muted); font-size:.83rem }
     .track-record strong { color:var(--text); font-size:.95rem }
     .track-record details { margin-top:4px }
-    .track-record summary { cursor:pointer }
+    .track-record summary { cursor:pointer; list-style:none }
+    .track-record summary::-webkit-details-marker { display:none }
+    .track-record summary::before { content:''; display:inline-block; width:.42em; height:.42em; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); margin:0 10px .2em 2px; vertical-align:middle; transition:transform .2s }
+    .track-record details:not([open]) summary::before { transform:rotate(-45deg) }
     .track-record ul { list-style:none; margin:7px 0 0; padding:0; max-width:230px }
     .track-record li { display:flex; justify-content:space-between; gap:10px }
     .track-record .positive { color:var(--indicator-positive) }
@@ -154,7 +157,10 @@
     .slips-table th:first-child { min-width:235px }
     .slips-table td,.slips-table th { vertical-align:top }
     .slips-table .slip-id { color:var(--text); text-transform:none; letter-spacing:normal; font-size:.92rem; background:var(--panel) }
-    .dead-slip summary { cursor:pointer; font-weight:700 }
+    .dead-slip summary { cursor:pointer; font-weight:700; list-style:none }
+    .dead-slip summary::-webkit-details-marker { display:none }
+    .dead-slip summary::before { content:''; display:inline-block; width:.42em; height:.42em; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); margin:0 10px .2em 2px; vertical-align:middle; transition:transform .2s }
+    .dead-slip details:not([open]) summary::before { transform:rotate(-45deg) }
     .dead-slip-content { display:flex; flex-wrap:wrap; gap:8px 20px; padding:10px 0 0 20px; font-size:.9rem }
     .slip-times,.cashout-detail { display:block; font-weight:400; margin-top:4px; font-size:.76rem }
     .slip-times { color:var(--muted) }
@@ -329,7 +335,7 @@
     const days = (Array.isArray(data.history) ? data.history : [data]).filter(item => item.date <= data.date)
     const nets = days.filter(item => !item.missing).map(item => ({ date:item.date, net:dailyNet(item) }))
     const total = nets.reduce((sum, item) => sum + item.net, 0)
-    return `<div class="track-record"><strong>Net profit, all days <span class="${total < 0 ? 'negative' : total > 0 ? 'positive' : ''}">${signed(total / 100)}</span></strong> · ${nets.length} ${nets.length === 1 ? 'day' : 'days'}<details data-expand-key="track-record"${expanded.get('track-record') ? ' open' : ''}><summary>Daily Results</summary><ul>${nets.map(item => `<li><span>${escapeHtml(item.date)}</span><span class="${item.net < 0 ? 'negative' : item.net > 0 ? 'positive' : ''}">${signed(item.net / 100)}</span></li>`).join('')}</ul></details></div>`
+    return `<div class="track-record"><strong>Net profit, all days <span class="${total < 0 ? 'negative' : total > 0 ? 'positive' : ''}">${signed(total / 100)}</span></strong> · ${nets.length} ${nets.length === 1 ? 'day' : 'days'}<details data-expand-key="track-record"${expanded.get('track-record') === false ? '' : ' open'}><summary>Daily Results</summary><ul>${nets.map(item => `<li><span>${escapeHtml(item.date)}</span><span class="${item.net < 0 ? 'negative' : item.net > 0 ? 'positive' : ''}">${signed(item.net / 100)}</span></li>`).join('')}</ul></details></div>`
   }
   function render(data) {
     if (data.archived && displayedDay !== data.date) {
@@ -380,8 +386,12 @@
     const finished = slips.every(slip => slip.status !== 'alive' || isFuture(slip))
     const futureNote = openFutures ? ` · ${openFutures} Future${openFutures > 1 ? 's' : ''} Open` : ''
     const chanceTone = finished ? totals.now < 0 ? 'negative' : totals.now > 0 ? 'positive' : '' : ''
-    const chanceText = finished ? `Day ${totals.now >= 0 ? 'Won' : 'Lost'} · ${signed(totals.now)}${futureNote}` : `Live · Chance Day Ends in Profit ${pct(data.portfolio.dayProfitChance)}`
-    const chancePill = `<span class="chance-pill ${chanceTone}">${finished ? '' : '<span class="status-dot live"></span>'}${escapeHtml(chanceText)}</span>`
+    // Timeline pill: the chance the day ends in profit. Slips pill: the money, live or final.
+    const liveDot = finished ? '' : '<span class="status-dot live"></span>'
+    const chanceText = `${finished ? '' : 'Live · '}Chance Day Ends in Profit ${pct(data.portfolio.dayProfitChance)}`
+    const chancePill = `<span class="chance-pill">${liveDot}${escapeHtml(chanceText)}</span>`
+    const resultText = finished ? `Day ${totals.now >= 0 ? 'Won' : 'Lost'} · ${signed(totals.now)}${futureNote}` : `Live · Profit Now ${signed(totals.now)}`
+    const resultPill = `<span class="chance-pill ${chanceTone}">${liveDot}${escapeHtml(resultText)}</span>`
     const legsHit = slips.reduce((sum, slip) => sum + slip.legIds.filter(id => state[id] === 'won').length, 0)
     const legCount = slips.reduce((sum, slip) => sum + slip.legIds.length, 0)
     const totalRow = `<tr class="total-row"><th scope="row">Total</th><td data-label="Stake">${money(totals.staked)}</td><td data-label="Max payout">${money(totals.locked + totals.possible)}</td><td data-label="Profit"><span class="profit-value ${totals.now < 0 ? 'negative' : totals.now > 0 ? 'positive' : ''}">${signed(totals.now)}</span></td><td data-label="Legs hit">${legsHit}/${legCount}</td><td data-label="Status">${finished ? `Day ${totals.now >= 0 ? 'Won' : 'Lost'}${futureNote}` : 'Live'}</td></tr>`
@@ -407,7 +417,7 @@
       const payoutCell = slip.status === 'cashed' ? `${money(received)}<small class="cashout-detail">Cashed Out</small>` : money(payout)
       const profitLabel = `<span class="profit-value ${gain < 0 ? 'negative' : gain > 0 ? 'positive' : ''}">${slip.status === 'alive' ? 'Up to ' : ''}${signed(gain)}</span>`
       const hit = `${slip.legIds.filter(id => state[id] === 'won').length}/${slip.legIds.length}`
-      if (slip.status === 'dead') return `<tr class="dead-slip" id="slip-${slip.number}"><td colspan="6"><details data-expand-key="slip:${slip.number}"${expanded.get(`slip:${slip.number}`) ? ' open' : ''}><summary>#${slip.number} ${badge('dead')}</summary>${timeLabel}${legChips(slip)}<div class="dead-slip-content"><span>Stake ${money(slip.stake)}</span><span>Max payout ${money(payout)}</span><span>Profit ${profitLabel}</span><span>Legs hit ${hit}</span>${cashoutLabel}</div></details></td></tr>`
+      if (slip.status === 'dead') return `<tr class="dead-slip" id="slip-${slip.number}"><td colspan="6"><details data-expand-key="slip:${slip.number}"${expanded.get(`slip:${slip.number}`) === false ? '' : ' open'}><summary>#${slip.number} ${badge('dead')}</summary>${timeLabel}${legChips(slip)}<div class="dead-slip-content"><span>Stake ${money(slip.stake)}</span><span>Max payout ${money(payout)}</span><span>Profit ${profitLabel}</span><span>Legs hit ${hit}</span>${cashoutLabel}</div></details></td></tr>`
       return `<tr id="slip-${slip.number}"><th scope="row" class="slip-id">#${slip.number}${timeLabel}${legChips(slip)}${cashoutLabel}</th><td data-label="Stake">${money(slip.stake)}</td><td data-label="Max payout">${payoutCell}</td><td data-label="Profit">${profitLabel}</td><td data-label="Legs hit">${hit}</td><td data-label="Status">${badge(slip.status, slip.status === 'cashed' ? 'Cashed Out' : slip.status)}</td></tr>`
     }).join('')
     const timelineStatus = leg => state[leg.id] === 'lost' || state[leg.id] !== 'won' && !refs[leg.id].some(ref => ref.status === 'alive') ? 'dead' : state[leg.id]
@@ -426,7 +436,7 @@
     <section class="metrics" aria-label="Day summary">${stat('Profit now', totals.now, true)}${stat('Still riding', totals.riding)}${stat('Max profit', maxProfit, true)}${stat('Staked', totals.staked)}${stat('Payout locked in', totals.locked)}${stat('Max still possible', totals.possible)}</section>
     <section aria-labelledby="pricing-title">${fold('pricing')}<summary class="section-top"><h2 id="pricing-title">Price vs. Fair</h2><p>Prices captured ${escapeHtml(stamp(data.asOf))}. The sportsbook price keeps the vig, so it shows what a bettor actually pays. Fair is Pinnacle with the vig removed.</p></summary><div class="table-wrap"><table><thead><tr><th>Market and Pacific event start</th><th>Kalshi ask</th><th>Sportsbook</th><th>Fair, no vig</th><th>Fee</th><th>Edge after fee</th></tr></thead><tbody>${data.legs.map(priceRow).join('')}</tbody></table></div></details></section>
     <section aria-labelledby="timeline-title">${fold('timeline')}<summary class="section-top"><h2 id="timeline-title">Timeline</h2><p>${data.archived ? 'Final market results from Kalshi.' : 'Live prices and final results from Kalshi.'}</p></summary><div class="filter-row"><div class="filters" aria-label="Timeline filters">${filterButtons('timeline', data.archived)}</div>${chancePill}</div><ol class="timeline">${timelineRows || '<li class="empty">No legs in these filters.</li>'}</ol></details></section>
-    <section aria-labelledby="slips-title">${fold('slips')}<summary class="section-top"><h2 id="slips-title">Slips</h2><p>${data.archived ? 'Hypothetical entries priced before play and settled from Kalshi results.' : 'Hypothetical entries. Profit is potential while a slip is alive.'}</p></summary><div class="filter-row"><div class="filters" aria-label="Slip filters">${filterButtons('slips', data.archived)}</div></div><div class="table-wrap"><table class="slips-table"><thead><tr><th>Slip and legs</th><th>Stake</th><th>Max payout</th><th>Profit</th><th>Legs hit</th><th>Status</th></tr></thead><tbody>${slipRows || '<tr><td colspan="6">No slips in these filters.</td></tr>'}${totalRow}</tbody></table></div></details></section>
+    <section aria-labelledby="slips-title">${fold('slips')}<summary class="section-top"><h2 id="slips-title">Slips</h2><p>${data.archived ? 'Hypothetical entries priced before play and settled from Kalshi results.' : 'Hypothetical entries. Profit is potential while a slip is alive.'}</p></summary><div class="filter-row"><div class="filters" aria-label="Slip filters">${filterButtons('slips', data.archived)}</div>${resultPill}</div><div class="table-wrap"><table class="slips-table"><thead><tr><th>Slip and legs</th><th>Stake</th><th>Max payout</th><th>Profit</th><th>Legs hit</th><th>Status</th></tr></thead><tbody>${slipRows || '<tr><td colspan="6">No slips in these filters.</td></tr>'}${totalRow}</tbody></table></div></details></section>
     
     ${commonQuestions()}`
     renderChecker(data)

@@ -155,15 +155,15 @@ test('dead demo slips show losing legs and keep their own expanded state', async
   await new Promise(resolve => setImmediate(resolve))
   let rendered = get('content').innerHTML
   assert.match(html, /\.leg-chip\.lost \.leg-name \{ text-decoration:line-through \}/)
-  assert.match(rendered, /id="slip-1".*?<details data-expand-key="slip:1"><summary>#1 <span class="badge dead">dead<\/span><\/summary>.*?leg-chip lost killer.*?Killed slip/)
-  listeners.toggle({ target:{ matches:() => true, dataset:{ expandKey:'slip:1' }, open:true } })
+  assert.match(rendered, /id="slip-1".*?<details data-expand-key="slip:1" open><summary>#1 <span class="badge dead">dead<\/span><\/summary>.*?leg-chip lost killer.*?Killed slip/)
+  listeners.toggle({ target:{ matches:() => true, dataset:{ expandKey:'slip:1' }, open:false } })
   rerender()
   rendered = get('content').innerHTML
-  assert.match(rendered, /data-expand-key="slip:1" open/)
-  assert.doesNotMatch(rendered, /data-expand-key="slip:2" open/)
+  assert.doesNotMatch(rendered, /data-expand-key="slip:1" open/)
+  assert.match(rendered, /data-expand-key="slip:2" open/)
   const reloaded = page(data, storage)
   await new Promise(resolve => setImmediate(resolve))
-  assert.match(reloaded.get('content').innerHTML, /data-expand-key="slip:1" open/)
+  assert.doesNotMatch(reloaded.get('content').innerHTML, /data-expand-key="slip:1" open/)
 })
 
 test('archived net and daily list exclude later days', async () => {
@@ -187,7 +187,8 @@ test('page renders summary, timeline, slips, engine, checker and public palette'
   assert.match(pricing, /<span class="sport-tile" aria-hidden="true">🥊<\/span>Carol to win/)
   assert.doesNotMatch(pricing, /Not available|undefined|N\/A|raw implied/)
   for (const expected of ['Profit now','Still riding','Max profit','Staked','Payout locked in','Max still possible','Timeline','Slips','Cashed Out','Placed','Price vs. Fair','Common Questions','100,000 trials']) assert.ok(rendered.includes(expected), expected)
-  assert.equal(rendered.match(/<span class="chance-pill "><span class="status-dot live"><\/span>Live · Chance Day Ends in Profit [^<]+<\/span>/g)?.length, 1)
+  assert.equal(rendered.match(/<span class="chance-pill"><span class="status-dot live"><\/span>Live · Chance Day Ends in Profit [^<]+<\/span>/g)?.length, 1)
+  assert.equal(rendered.match(/<span class="chance-pill [^"]*"><span class="status-dot live"><\/span>Live · Profit Now [^<]+<\/span>/g)?.length, 1)
   assert.match(rendered, /<tr class="total-row"><th scope="row">Total<\/th>/)
   assert.ok(!rendered.includes('Live model ·'))
   assert.ok(!rendered.includes('Unused') && !rendered.includes('Lists'))
@@ -232,7 +233,8 @@ test('finished demo day shows final result instead of modeled morning chance', a
   const { get } = page(data)
   await new Promise(resolve => setImmediate(resolve))
   const pills = get('content').innerHTML.match(/<span class="chance-pill[^"]*">[^<]*<\/span>/g)
-  assert.deepEqual(pills, ['<span class="chance-pill negative">Day Lost · −$100.00</span>'])
+  assert.deepEqual(pills.slice(1), ['<span class="chance-pill negative">Day Lost · −$100.00</span>'])
+  assert.match(pills[0], /^<span class="chance-pill">Chance Day Ends in Profit [\d.]+%<\/span>$/)
   assert.match(get('content').innerHTML, /<td data-label="Status">Day Lost<\/td><\/tr>/)
 })
 

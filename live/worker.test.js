@@ -403,23 +403,24 @@ test('expanded slip state survives rerenders, filter changes, reloads, and stora
   const data = { config: pageConfig, markets: { [config.legs[0].ticker]: { result: 'no' } }, stale: false }
   const storage = memoryStorage()
   const first = await renderPage(data, { storage })
-  first.toggleDetail('slip:4', true)
+  assert.match(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
+  first.toggleDetail('slip:4', false)
   first.rerender(data)
-  assert.match(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
-  assert.doesNotMatch(first.getElementById('slips').innerHTML, /data-expand-key="slip:16" open/)
+  assert.doesNotMatch(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
+  assert.match(first.getElementById('slips').innerHTML, /data-expand-key="slip:16" open/)
   first.clickFilter('slips', 'dead')
   first.clickFilter('slips', 'dead')
-  assert.match(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
+  assert.doesNotMatch(first.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
   const second = await renderPage(data, { storage })
-  assert.match(second.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
-  second.toggleDetail('slip:4', false)
-  second.rerender(data)
   assert.doesNotMatch(second.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
+  second.toggleDetail('slip:4', true)
+  second.rerender(data)
+  assert.match(second.getElementById('slips').innerHTML, /data-expand-key="slip:4" open/)
   const broken = { getItem() { throw new Error('blocked') }, setItem() { throw new Error('blocked') } }
   const fallback = await renderPage(data, { storage: broken })
-  fallback.toggleDetail('slip:16', true)
+  fallback.toggleDetail('slip:16', false)
   fallback.rerender(data)
-  assert.match(fallback.getElementById('slips').innerHTML, /data-expand-key="slip:16" open/)
+  assert.doesNotMatch(fallback.getElementById('slips').innerHTML, /data-expand-key="slip:16" open/)
 })
 
 test('filters persist and storage failures do not break rendering', async () => {
@@ -543,7 +544,8 @@ test('finished private day shows the settled result by the header', async () => 
     legs:[{ name:'Winner', ticker:'W', side:'yes', start:'2026-10-17T17:00:00Z' }],
     slips:[{ name:'1', stake:'10', payout:'20', legs:['Winner'] }] },
     markets:{ W:{ result:'yes' } }, stale:false })
-  assert.equal(document.getElementById('day-chance-timeline').innerHTML, 'Day Won · +$10.00')
+  assert.equal(document.getElementById('day-chance-timeline').innerHTML, "Day's Games Settled")
+  assert.equal(document.getElementById('day-result-slips').innerHTML, 'Day Won · +$10.00')
   assert.match(document.getElementById('slips').innerHTML, /<tr class="total-row"><th scope="row">Total<\/th><td data-label="Stake">\$10\.00<\/td>.*<td data-label="Status">Day Won<\/td><\/tr>$/)
 })
 
@@ -552,7 +554,7 @@ test('a futures slip does not hold the private day open', async () => {
     legs:[{ name:'Winner', ticker:'W', side:'yes', start:'2026-10-17T17:00:00Z' }, { name:'Champion', ticker:'C', side:'yes', start:'2027-02-14T23:30:00Z' }],
     slips:[{ name:'1', stake:'10', payout:'20', legs:['Winner'] }, { name:'2', stake:'10', payout:'60', legs:['Champion'] }] },
     markets:{ W:{ result:'yes' }, C:{ yes_bid_dollars:'0.16', yes_ask_dollars:'0.17' } }, stale:false })
-  assert.equal(document.getElementById('day-chance-timeline').innerHTML, 'Day Won · +$10.00 · 1 Future Open')
+  assert.equal(document.getElementById('day-result-slips').innerHTML, 'Day Won · +$10.00 · 1 Future Open')
 })
 
 test('private sorts full cash-outs before dead slips', async () => {
