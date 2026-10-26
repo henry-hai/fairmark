@@ -67,7 +67,7 @@ test('modeled track record sums cashed-out and riding demo days without private 
   const { get } = page(body)
   await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
-  assert.match(rendered, /Net profit, all days.*\+\$20\.00.*2 days/)
+  assert.match(rendered, /<li class="total"><span>Total, 2 days<\/span><span class="positive">\+\$20\.00/)
   assert.match(rendered, /2026-10-20.*\+\$20\.00/)
   assert.match(rendered, /Still riding.*\$100\.00/)
 })
@@ -139,7 +139,7 @@ test('zero demo profit has no positive class', async () => {
   await new Promise(resolve => setImmediate(resolve))
   const rendered = get('content').innerHTML
   assert.match(rendered, /Profit now<\/span><strong class="">\+\$0\.00/)
-  assert.match(rendered, /Net profit, all days <span class="">\+\$0\.00/)
+  assert.match(rendered, /Total, 1 day<\/span><span class="">\+\$0\.00/)
   assert.match(rendered, /class="profit-value ">\+\$0\.00/)
 })
 
@@ -172,7 +172,7 @@ test('archived net and daily list exclude later days', async () => {
   const { get } = page(data)
   await new Promise(resolve => setImmediate(resolve))
   const record = get('content').innerHTML.match(/<div class="track-record">[\s\S]*?<\/details><\/div>/)?.[0]
-  assert.match(record, /Net profit, all days.*\+\$30\.00.*2 days/)
+  assert.match(record, /Total, 2 days<\/span><span class="positive">\+\$30\.00/)
   assert.match(record, /2026-10-19.*2026-10-20/)
   assert.doesNotMatch(record, /2026-10-21/)
 })

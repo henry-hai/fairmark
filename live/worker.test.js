@@ -480,11 +480,11 @@ test('all-time net includes a cashed-out archive and a day still riding', async 
   const current = await (await worker.fetch(new Request('https://example.com/api/schedule?k=private'), env)).json()
   const document = await renderPage(current)
   const record = document.getElementById('track-record').innerHTML
-  assert.match(record, /All-time net \+\$1\.00.*2 days tracked/)
+  assert.match(record, /Total, 2 days<\/span><span class="positive">\+\$1\.00/)
   assert.match(record, /2026-10-16.*\+\$1\.00.*2026-10-17.*\+\$0\.00/)
   assert.match(document.getElementById('profit-tracker').innerHTML, /Still riding<\/span><strong>\$20\.00/)
   const archive = await (await worker.fetch(new Request(`https://example.com/api/schedule?k=private&d=${oldDate}`), env)).json()
-  assert.match((await renderPage(archive)).getElementById('track-record').innerHTML, /All-time net \+\$1\.00/)
+  assert.match((await renderPage(archive)).getElementById('track-record').innerHTML, /Total, \d days?<\/span><span class="positive">\+\$1\.00/)
   assert.ok(reads.includes(`day:${oldDate}`))
   assert.deepEqual(writes, [])
 })

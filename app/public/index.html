@@ -34,6 +34,7 @@
     .track-record strong { color:var(--text); font-size:.95rem }
     .track-record details { margin-top:4px }
     .track-record summary { cursor:pointer; list-style:none }
+    .track-record li.total { font-weight:800; border-top:1px solid var(--line); padding-top:6px; margin-top:4px }
     .track-record summary::-webkit-details-marker { display:none }
     .track-record summary::before { content:''; display:inline-block; width:.42em; height:.42em; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); margin:0 10px .2em 2px; vertical-align:middle; transition:transform .2s }
     .track-record details:not([open]) summary::before { transform:rotate(-45deg) }
@@ -335,7 +336,8 @@
     const days = (Array.isArray(data.history) ? data.history : [data]).filter(item => item.date <= data.date)
     const nets = days.filter(item => !item.missing).map(item => ({ date:item.date, net:dailyNet(item) }))
     const total = nets.reduce((sum, item) => sum + item.net, 0)
-    return `<div class="track-record"><strong>Net profit, all days <span class="${total < 0 ? 'negative' : total > 0 ? 'positive' : ''}">${signed(total / 100)}</span></strong> · ${nets.length} ${nets.length === 1 ? 'day' : 'days'}<details data-expand-key="track-record"${expanded.get('track-record') === false ? '' : ' open'}><summary>Daily Results</summary><ul>${nets.map(item => `<li><span>${escapeHtml(item.date)}</span><span class="${item.net < 0 ? 'negative' : item.net > 0 ? 'positive' : ''}">${signed(item.net / 100)}</span></li>`).join('')}</ul></details></div>`
+    const tone = value => value < 0 ? 'negative' : value > 0 ? 'positive' : ''
+    return `<div class="track-record"><details data-expand-key="track-record"${expanded.get('track-record') ? ' open' : ''}><summary>Daily Results</summary><ul>${nets.map(item => `<li><span>${escapeHtml(item.date)}</span><span class="${tone(item.net)}">${signed(item.net / 100)}</span></li>`).join('')}<li class="total"><span>Total, ${nets.length} ${nets.length === 1 ? 'day' : 'days'}</span><span class="${tone(total)}">${signed(total / 100)}</span></li></ul></details></div>`
   }
   function render(data) {
     if (data.archived && displayedDay !== data.date) {
