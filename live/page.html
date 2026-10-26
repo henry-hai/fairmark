@@ -324,7 +324,7 @@
     const nets = days.map(day => ({ date: day.date, net: dailyNet(day) }))
     const allTime = nets.some(day => day.net === null) ? null : nets.reduce((sum, day) => sum + day.net, 0)
     const rows = nets.map(day => `<li><span>${escapeHtml(day.date)}</span><span class="${profitClass(day.net)}">${profitValue(day.net)}</span></li>`).join('')
-    document.getElementById('track-record').innerHTML = `<details data-expand-key="track-record"${expanded.get('track-record') ? ' open' : ''}><summary>Daily Results</summary><ul>${rows}<li class="total"><span>Total, ${nets.length} ${nets.length === 1 ? 'day' : 'days'}</span><span class="${profitClass(allTime)}">${profitValue(allTime)}</span></li></ul></details>`
+    document.getElementById('track-record').innerHTML = `<details data-expand-key="daily-results"${expanded.get('daily-results') ? ' open' : ''}><summary>Daily Results</summary><ul>${rows}<li class="total"><span>Total, ${nets.length} ${nets.length === 1 ? 'day' : 'days'}</span><span class="${profitClass(allTime)}">${profitValue(allTime)}</span></li></ul></details>`
   }
 
   function render(data) {
