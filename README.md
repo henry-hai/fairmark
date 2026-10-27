@@ -4,17 +4,38 @@ Fairmark is a pricing and risk engine for sports markets on Kalshi, a federally 
 
 Live: https://fairmark-app.pages.dev
 
-![Fairmark desktop view](docs/screenshot-desktop.png)
+![Fairmark summary](docs/screenshot-desktop-1-top.png)
 
 ## How it works
 
 - Removes Pinnacle's margin to estimate no-vig fair value.
-- Compares that value with Kalshi's ask plus the estimated taker fee.
+- Shows what a regular sportsbook charges for the same bet, DraftKings first, then FanDuel, then BetMGM, with the vig left in.
+- Compares fair value with Kalshi's ask plus Kalshi's taker fee: edge after fee = (fair − ask − fee) ÷ fair.
 - Uses Monte Carlo trials to estimate the chance of day profit, sampling shared legs once per trial.
+
+The demo day is built from one pregame capture of Kalshi and sportsbook prices, so every price on it is real and from before the games started. Results and the cash-out come from Kalshi's own market data.
+
+### Price vs. Fair
+
+Each leg's Kalshi ask next to the sportsbook price and the Pinnacle no-vig fair, with the fee and the edge after fee.
+
+![Price vs. Fair](docs/screenshot-desktop-2-price-vs-fair.png)
+
+### Timeline
+
+Every leg in start order, with live prices and final results from Kalshi.
+
+![Timeline](docs/screenshot-desktop-3-timeline.png)
+
+### Slips
+
+Won, dead, cashed out and still riding, with a total for the day.
+
+![Slips](docs/screenshot-desktop-4-slips.png)
 
 ## Stack
 
-Python 3.12 with uv, Cloudflare Pages Functions, Workers KV, and a poller for market updates.
+Python 3.12 with uv, Cloudflare Pages Functions, Workers KV, The Odds API for sportsbook lines, and a poller for Kalshi market updates.
 
 ## Run locally
 

@@ -26,7 +26,8 @@
     .lede { max-width:750px; color:var(--muted); font-size:1.05rem }
     .meta { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:44px; color:var(--muted); font-size:.82rem }
     .chip { border:1px solid var(--line); border-radius:99px; padding:5px 10px; background:var(--panel2) }
-    .status-dot { width:7px; height:7px; border-radius:50%; background:var(--muted) }
+    .status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--muted) }
+    .meta .status-dot { margin-right:9px; vertical-align:middle }
     .status-dot.live { background:var(--text); animation:neon-dot 2.4s ease-in-out infinite }
     .status-word { color:var(--text); font-weight:600 }
     .metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:20px }
@@ -78,6 +79,7 @@
     th { color:var(--muted); text-transform:uppercase; letter-spacing:.07em; font-size:.67rem; font-weight:700; text-align:right; background:var(--panel2) }
     th:first-child, td:first-child { text-align:left }
     th,td { padding:15px 17px; border-bottom:1px solid var(--line); white-space:nowrap }
+    th.slip-id,.slip-times { white-space:normal }
     tr:last-child td { border-bottom:0 }
     td { text-align:right; font-size:.91rem }
     .outcome { font-weight:700; white-space:normal; min-width:220px }
@@ -200,7 +202,7 @@
       <div class="eyebrow">Pricing and risk engine</div>
       <h1>Find the gap between market price and fair value.</h1>
       <p class="lede">Kalshi prices compared with documented fair references. Fees and shared exposure flow into a portfolio risk model.</p>
-      <div class="meta"><span class="status-dot" id="status-dot"></span><span><strong class="status-word" id="status-word">Loading</strong> · <span id="updated">Fetching public pricing data</span></span></div>
+      <div class="meta"><span><span class="status-dot" id="status-dot"></span><strong class="status-word" id="status-word">Loading</strong> · <span id="updated">Fetching public pricing data</span></span></div>
     </section>
     <div id="content" aria-live="polite"></div>
   </main>
