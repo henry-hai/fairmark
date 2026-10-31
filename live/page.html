@@ -62,7 +62,7 @@
     .book-tag.dk { color: #53d337; } .book-tag.fd { color: #1493ff; } .book-tag.mgm { color: #c8a75d; }
     .pricing-row td { vertical-align: top; }
     .pricing-row .figure { display: block; }
-    @media (max-width: 600px) { .pricing-row .book-tag.spacer { display: none; } }
+    @media (max-width: 600px) { .pricing-row .book-tag.spacer { display: none; } .leg-chips .leg-chip { flex-direction: column; align-items: flex-start; gap: 1px; } .leg-chips .leg-chip .leg-detail { padding-left: 26px; } }
     .fold > summary { list-style: none; cursor: pointer; }
     .fold > summary::-webkit-details-marker { display: none; }
     .fold > summary h2::before { content: ''; display: inline-block; width: .38em; height: .38em; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin: 0 14px .22em 3px; vertical-align: middle; transition: transform .2s; }
@@ -97,7 +97,7 @@
     .dead-slip-content span { overflow-wrap: anywhere; }
     .slip-id { min-width: 235px; background: var(--panel); }
     .leg-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; font-weight: 400; }
-    .leg-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 7px; border: 1px solid currentColor; border-radius: 999px; font-size: .75rem; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
+    .leg-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 7px; border: 1px solid currentColor; border-radius: 8px; font-size: .75rem; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
     .leg-chip.won { background: color-mix(in srgb, var(--won) 12%, transparent); }
     .leg-chip.lost { background: color-mix(in srgb, var(--lost) 12%, transparent); }
     .leg-chip.live { background: color-mix(in srgb, var(--live) 12%, transparent); }
