@@ -28,7 +28,7 @@
     .chip { border:1px solid var(--line); border-radius:99px; padding:5px 10px; background:var(--panel2) }
     .status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--muted) }
     .meta .status-dot { margin-right:9px; vertical-align:middle }
-    .status-dot.live { background:var(--text); animation:neon-dot 2.4s ease-in-out infinite }
+    .status-dot.live { background:var(--text); animation:neon-dot 3s ease-in-out infinite }
     .status-word { color:var(--text); font-weight:600 }
     .metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:20px }
     .track-record { margin-top:10px; color:var(--muted); font-size:.83rem }
@@ -59,7 +59,7 @@
     .book-tag.dk { color:#53d337 } .book-tag.fd { color:#1493ff } .book-tag.mgm { color:#c8a75d }
     .pricing-row td { vertical-align:top }
     .pricing-row .figure { display:block }
-    @media(max-width:600px) { .pricing-row .book-tag.spacer { display:none } }
+    @media(max-width:600px) { .pricing-row .book-tag.spacer { display:none } .leg-chips .leg-chip { flex-direction:column; align-items:flex-start; gap:1px } .leg-chips .leg-chip b { padding-left:26px } }
     .sport-tile { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; margin-right:9px; border-radius:7px; background:var(--panel2); border:1px solid var(--line); font-size:13px; line-height:1; vertical-align:-5px; flex:none }
     .leg-chip .leg-name { display:inline-flex; align-items:center }
     .leg-line { display:flex; align-items:center }
@@ -128,11 +128,11 @@
     .filter-chip[data-filter="upcoming"] { --dot:var(--upcoming) }
     .filter-chip[data-filter="won"] { --dot:var(--won) }
     .filter-chip[data-filter="cashed"] { --dot:var(--gold) }
-    .filter-chip[data-filter="live"],.filter-chip[data-filter="alive"] { --dot:var(--text); animation:neon 2.4s ease-in-out infinite }
-    .filter-chip[data-filter="live"]::before,.filter-chip[data-filter="alive"]::before { animation:neon-dot 2.4s ease-in-out infinite }
+    .filter-chip[data-filter="live"],.filter-chip[data-filter="alive"] { --dot:var(--text); animation:neon 3s ease-in-out infinite }
+    .filter-chip[data-filter="live"]::before,.filter-chip[data-filter="alive"]::before { animation:neon-dot 3s ease-in-out infinite }
     .filter-chip[data-filter][aria-pressed="true"] { color:var(--text); border-color:var(--dot); background:var(--panel2) }
-    @keyframes neon { 0%,100% { text-shadow:none } 50% { text-shadow:0 0 6px color-mix(in srgb,var(--text) 75%,transparent),0 0 14px color-mix(in srgb,var(--text) 35%,transparent) } }
-    @keyframes neon-dot { 0%,100% { box-shadow:none; opacity:.6 } 50% { box-shadow:0 0 8px 2px color-mix(in srgb,var(--text) 60%,transparent); opacity:1 } }
+    @keyframes neon { 0%,100% { text-shadow:0 0 6px color-mix(in srgb,var(--text) 75%,transparent),0 0 14px color-mix(in srgb,var(--text) 35%,transparent) } 50% { text-shadow:0 0 3px color-mix(in srgb,var(--text) 20%,transparent),0 0 8px color-mix(in srgb,var(--text) 8%,transparent) } }
+    @keyframes neon-dot { 0%,100% { box-shadow:0 0 8px 2px color-mix(in srgb,var(--text) 60%,transparent); opacity:1 } 50% { box-shadow:0 0 3px 1px color-mix(in srgb,var(--text) 15%,transparent); opacity:.7 } }
     @media(prefers-reduced-motion:reduce) { .filter-chip[data-filter],.filter-chip[data-filter]::before,.badge.live { animation:none } }
     .chance-pill { border:1px solid var(--line); border-radius:99px; padding:5px 11px; background:var(--panel); color:var(--muted); font-size:.78rem; font-weight:700; white-space:nowrap }
     .chance-pill.positive { color:var(--won); border-color:var(--won) }
@@ -151,7 +151,7 @@
     .badge.won,.leg-chip.won { color:var(--won) }
     .badge.dead,.leg-chip.lost { color:var(--lost) }
     .leg-chip.live { color:var(--live) }
-    .badge.live { color:var(--text); animation:neon 2.4s ease-in-out infinite }
+    .badge.live { color:var(--text); animation:neon 3s ease-in-out infinite }
     .badge.upcoming,.leg-chip.upcoming { color:var(--upcoming) }
     .badge.alive { color:var(--indicator-positive); text-shadow:var(--indicator-glow-positive) }
     .slips-table .profit-value.positive { color:var(--indicator-positive); text-shadow:var(--profit-glow) }

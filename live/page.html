@@ -37,11 +37,11 @@
     .filter-chip[data-filter="upcoming"] { --dot: var(--upcoming); }
     .filter-chip[data-filter="won"] { --dot: var(--won); }
     .filter-chip[data-filter="cashed"] { --dot: var(--gold); }
-    .filter-chip[data-filter="live"], .filter-chip[data-filter="alive"] { --dot: var(--text); animation: neon 2.4s ease-in-out infinite; }
-    .filter-chip[data-filter="live"]::before, .filter-chip[data-filter="alive"]::before { animation: neon-dot 2.4s ease-in-out infinite; }
+    .filter-chip[data-filter="live"], .filter-chip[data-filter="alive"] { --dot: var(--text); animation: neon 3s ease-in-out infinite; }
+    .filter-chip[data-filter="live"]::before, .filter-chip[data-filter="alive"]::before { animation: neon-dot 3s ease-in-out infinite; }
     .filter-chip[data-filter][aria-pressed="true"] { color: var(--text); border-color: var(--dot); background: var(--panel2, var(--bg)); }
-    @keyframes neon { 0%, 100% { text-shadow: none; } 50% { text-shadow: 0 0 6px color-mix(in srgb, var(--text) 75%, transparent), 0 0 14px color-mix(in srgb, var(--text) 35%, transparent); } }
-    @keyframes neon-dot { 0%, 100% { box-shadow: none; opacity: .6; } 50% { box-shadow: 0 0 8px 2px color-mix(in srgb, var(--text) 60%, transparent); opacity: 1; } }
+    @keyframes neon { 0%, 100% { text-shadow: 0 0 6px color-mix(in srgb, var(--text) 75%, transparent), 0 0 14px color-mix(in srgb, var(--text) 35%, transparent); } 50% { text-shadow: 0 0 3px color-mix(in srgb, var(--text) 20%, transparent), 0 0 8px color-mix(in srgb, var(--text) 8%, transparent); } }
+    @keyframes neon-dot { 0%, 100% { box-shadow: 0 0 8px 2px color-mix(in srgb, var(--text) 60%, transparent); opacity: 1; } 50% { box-shadow: 0 0 3px 1px color-mix(in srgb, var(--text) 15%, transparent); opacity: .7; } }
     @media (prefers-reduced-motion: reduce) { .filter-chip[data-filter], .filter-chip[data-filter]::before { animation: none; } }
     .section-top { display: flex; justify-content: space-between; gap: 18px; align-items: baseline; }
     .section-top p { color: var(--muted); font-size: .86rem; margin: 0; }
@@ -49,7 +49,7 @@
     .filter-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 15px; }
     .filter-row .filters { margin: 0; }
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
-    .status-dot.live { background: var(--text); animation: neon-dot 2.4s ease-in-out infinite; }
+    .status-dot.live { background: var(--text); animation: neon-dot 3s ease-in-out infinite; }
     .muted { color: var(--muted); }
     .total-row th, .total-row td { font-weight: 800; border-top: 2px solid var(--line); }
     .sport-tile { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: 9px; border-radius: 7px; background: var(--panel2); border: 1px solid var(--line); font-size: 13px; line-height: 1; vertical-align: -5px; }
@@ -62,7 +62,7 @@
     .book-tag.dk { color: #53d337; } .book-tag.fd { color: #1493ff; } .book-tag.mgm { color: #c8a75d; }
     .pricing-row td { vertical-align: top; }
     .pricing-row .figure { display: block; }
-    @media (max-width: 600px) { .pricing-row .book-tag.spacer { display: none; } }
+    @media (max-width: 600px) { .pricing-row .book-tag.spacer { display: none; } .leg-chips .leg-chip { flex-direction: column; align-items: flex-start; gap: 1px; } .leg-chips .leg-chip .leg-detail { padding-left: 26px; } }
     .fold > summary { list-style: none; cursor: pointer; }
     .fold > summary::-webkit-details-marker { display: none; }
     .fold > summary h2::before { content: ''; display: inline-block; width: .38em; height: .38em; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin: 0 14px .22em 3px; vertical-align: middle; transition: transform .2s; }
@@ -97,7 +97,7 @@
     .dead-slip-content span { overflow-wrap: anywhere; }
     .slip-id { min-width: 235px; background: var(--panel); }
     .leg-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; font-weight: 400; }
-    .leg-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 7px; border: 1px solid currentColor; border-radius: 999px; font-size: .75rem; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
+    .leg-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 7px; border: 1px solid currentColor; border-radius: 8px; font-size: .75rem; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
     .leg-chip.won { background: color-mix(in srgb, var(--won) 12%, transparent); }
     .leg-chip.lost { background: color-mix(in srgb, var(--lost) 12%, transparent); }
     .leg-chip.live { background: color-mix(in srgb, var(--live) 12%, transparent); }
