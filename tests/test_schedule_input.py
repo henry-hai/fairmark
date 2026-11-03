@@ -170,6 +170,64 @@ def test_push_checks_bovada_implied_and_pinnacle_fair_source(tmp_path):
         push.validate_schedule(payload)
 
 
+def test_push_reads_logged_prices_and_keeps_saved_ones(tmp_path):
+    import pytest
+    push_path = script.with_name('push_slips.py')
+    push_spec = importlib.util.spec_from_file_location('push_slips_script_logged', push_path)
+    push = importlib.util.module_from_spec(push_spec)
+    push_spec.loader.exec_module(push)
+    prices = tmp_path / '2026-10-27.prices'
+    prices.write_text(
+        '# leg | kalshi ask at buy | DraftKings alt odds | DraftKings implied | Pinnacle main line | fair | fair source | pulled (PT)\n'
+        'Deni Avdija: 15+ points | 0.85 | -582 | 0.853 | none | 0.841 | derived: DK alt minus 3 pts | 2026-10-27 19:10\n'
+        'Portland to win | 0.40 | +150 | 0.400 | +150 | 0.38 | Pinnacle no-vig | 2026-10-27 19:10\n')
+    read = push.read_prices(prices)
+    assert read['deni avdija: 15+ points'] == {'askAtBuy': .85, 'book': 'DraftKings', 'bookOdds': '-582',
+                                               'bookChance': pytest.approx(582 / 682), 'fair': .841, 'fairSource': 'Derived'}
+    assert read['portland to win']['fairSource'] == 'Pinnacle no-vig'
+    unnamed = tmp_path / 'unnamed.prices'
+    unnamed.write_text('# leg | ask | sportsbook odds | implied | pinnacle | fair | source | pulled\n'
+                       'A | 0.5 | -370 | 0.787 | none | 0.7 | Pinnacle main line, estimate | now\n'
+                       'B | 0.5 | -200 | 0.667 | none | 0.6 | Bovada alt minus 3, estimate | now\n'
+                       'C | 0.5 | -150 | 0.6 | none | 0.58 | Bovada odds, fair Pinnacle no-vig | now\n'
+                       'D | 0.5 | -150 | 0.6 | none | 0.58 | Bovada alt odds, fair Pinnacle main line, normal, estimate | now\n')
+    assert 'book' not in push.read_prices(unnamed)['a']
+    assert push.read_prices(unnamed)['b']['book'] == 'Bovada'
+    assert push.read_prices(unnamed)['c']['fairSource'] == 'Pinnacle no-vig'
+    assert push.read_prices(unnamed)['d']['fairSource'] == 'Derived'
+    assert push.read_prices(tmp_path / 'missing.prices') == {}
+
+    leg = {'name': 'Deni Avdija: 15+ points', 'ticker': 'T', 'bovadaOdds': None, 'bovadaImplied': None,
+           'pinnacleRaw': None, 'fair': None, 'fairSource': None}
+    saved = {'date': '2026-10-27', 'legs': [{**leg, 'pinnacleRaw': .45, 'fair': .86, 'fairSource': 'Pinnacle no-vig'}]}
+    config = {'date': '2026-10-27', 'legs': [dict(leg)]}
+    push.fill_prices(config, saved, read)
+    filled = config['legs'][0]
+    assert (filled['pinnacleRaw'], filled['fair'], filled['fairSource']) == (.45, .86, 'Pinnacle no-vig')
+    assert (filled['askAtBuy'], filled['book'], filled['bookOdds']) == (.85, 'DraftKings', '-582')
+    config = {'date': '2026-10-28', 'legs': [dict(leg)]}
+    push.fill_prices(config, saved, read)
+    assert (config['legs'][0]['fair'], config['legs'][0]['fairSource']) == (.841, 'Derived')
+
+
+def test_push_accepts_derived_fair_and_checks_logged_sportsbook(tmp_path):
+    import pytest
+    push_path = script.with_name('push_slips.py')
+    push_spec = importlib.util.spec_from_file_location('push_slips_script_derived', push_path)
+    push = importlib.util.module_from_spec(push_spec)
+    push_spec.loader.exec_module(push)
+    leg = {'name': 'Deni', 'start': '2026-10-17T22:00:00+00:00', 'startSource': 'ticker file',
+           'bovadaOdds': None, 'bovadaImplied': None, 'pinnacleRaw': .5, 'fair': .841, 'fairSource': 'Derived',
+           'book': 'DraftKings', 'bookOdds': '-582', 'bookChance': 582 / 682, 'askAtBuy': .85}
+    payload = tmp_path / 'schedule.json'
+    payload.write_text(json.dumps({'legs': [leg], 'cashouts': {}}))
+    push.validate_schedule(payload)
+    for key, bad, message in (('bookChance', .5, 'Sportsbook chance'), ('askAtBuy', 1.0, 'ask at buy')):
+        payload.write_text(json.dumps({'legs': [{**leg, key: bad}], 'cashouts': {}}))
+        with pytest.raises(ValueError, match=message):
+            push.validate_schedule(payload)
+
+
 def test_push_lists_every_missing_leg_and_field(tmp_path, capsys):
     push_path = script.with_name('push_slips.py')
     push_spec = importlib.util.spec_from_file_location('push_slips_script_missing', push_path)
