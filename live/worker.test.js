@@ -368,6 +368,23 @@ test('every slip shows state chips and dead slips identify losing legs', async (
   assert.match(rows, /id="slip-cashed".*?leg-chip lost.*?Lost.*?Profit">−\$17\.50.*?class="badge cashed">Cashed Out/)
 })
 
+test('a scalar settlement counts as settled and scales the slip payout', async () => {
+  const legs = [
+    { name: 'Ty Jerome: 15+ points', ticker: 'SCALAR-0', side: 'yes', start: '2026-10-17T17:00:00Z' },
+    { name: 'Won', ticker: 'SCALAR-1', side: 'yes', start: '2026-10-17T17:00:00Z' }
+  ]
+  const slips = [{ name: '5', stake: '10', payout: '584.79', legs: ['Ty Jerome: 15+ points', 'Won'] }]
+  const markets = {
+    'SCALAR-0': { result: 'scalar', settlement_value_dollars: '0.8700', yes_bid_dollars: '0.0000', yes_ask_dollars: '1.0000' },
+    'SCALAR-1': { result: 'yes' }
+  }
+  const document = await renderPage({ config: { date: config.date, legs, slips }, markets, stale: false }, { now: Date.parse('2026-10-17T19:00:00Z') })
+  const rows = document.getElementById('slips').innerHTML
+  assert.match(rows, /leg-chip won.*?Ty Jerome: 15\+ points.*?Settled 87¢/)
+  assert.match(rows, /Max payout">\$508\.77.*?class="badge won"/)
+  assert.doesNotMatch(document.getElementById('timeline').innerHTML, /Ty Jerome[^<]*\(50\.0%\)/)
+})
+
 test('full and partial cash-outs reduce exposure and count received money', async () => {
   const legs = [
     { name: 'Lost', ticker: 'L', side: 'yes', start: '2026-10-17T17:00:00Z' },

@@ -284,13 +284,26 @@
     refresh(true)
   })
 
+  // Kalshi settles some props as "scalar" at a set value instead of yes or no, a DNP for one
+  // (Ty Jerome 15+ points paid 0.87 on 2026-10-31). The leg counts as settled, and a slip holding it
+  // pays that share of its payout.
+  const scalarValue = (market, side) => {
+    const value = Number(market.settlement_value_dollars)
+    if (String(market.result || '').toLowerCase() !== 'scalar' || market.settlement_value_dollars == null || !Number.isFinite(value)) return null
+    return side === 'no' ? 1 - value : value
+  }
+  const scalarState = value => value > 0 ? 'won' : 'lost'
+  const payoutShare = (slip, scalars) => slip.legs.reduce((share, name) => share * (scalars[name] ?? 1), 1)
+
   function dailyNet(day) {
     if (day.missing) return null
     const { config, markets = {}, legStatus = {}, firstPrices = {} } = day
     const states = {}
+    const scalars = {}
     for (const leg of config.legs) {
       const market = markets[leg.ticker] || {}
       const result = String(market.result || '').toLowerCase()
+      scalars[leg.name] = scalarValue(market, leg.side)
       const bid = Number(market[`${leg.side}_bid_dollars`])
       const ask = Number(market[`${leg.side}_ask_dollars`])
       const quoted = market[`${leg.side}_bid_dollars`] != null && market[`${leg.side}_ask_dollars`] != null && Number.isFinite(bid) && Number.isFinite(ask)
@@ -298,7 +311,7 @@
       const firstPrice = firstPrices[leg.name]
       const priceMoved = probability !== null && typeof firstPrice === 'number' &&
         Math.abs(Math.round(probability * 10000) - Math.round(firstPrice * 10000)) > 800
-      const state = result === 'yes' || result === 'no' ? (result === leg.side ? 'won' : 'lost') :
+      const state = result === 'yes' || result === 'no' ? (result === leg.side ? 'won' : 'lost') : scalars[leg.name] !== null ? scalarState(scalars[leg.name]) :
         legStatus[leg.name]?.live === true || Date.now() >= Date.parse(legStatus[leg.name]?.start || leg.start) || (priceMoved && !Number.isFinite(Date.parse(legStatus[leg.name]?.start || leg.start))) ? 'live' : 'upcoming'
       const nearly = state === 'live' && probability !== null ? (probability <= 0.02 ? 'lost' : probability >= 0.98 ? 'won' : null) : null
       states[leg.name] = nearly || state
@@ -313,7 +326,7 @@
       net += (cashout ? cents(cashout.amount) : 0) - (status === 'alive' ? stake - Math.round(stake * fraction) : stake)
       if (status === 'won' && fraction !== 0) {
         if (slip.payout == null) missingPayout = true
-        else net += Math.round(cents(slip.payout) * fraction)
+        else net += Math.round(cents(slip.payout) * payoutShare(slip, scalars) * fraction)
       }
     }
     return missingPayout ? null : net
@@ -353,11 +366,13 @@
     const states = {}
     const nearly = {}
     const probabilities = {}
+    const scalars = {}
     const refs = {}
     for (const leg of config.legs) {
       refs[leg.name] = []
       const market = markets[leg.ticker] || {}
       const result = String(market.result || '').toLowerCase()
+      scalars[leg.name] = scalarValue(market, leg.side)
       const bid = Number(market[`${leg.side}_bid_dollars`])
       const ask = Number(market[`${leg.side}_ask_dollars`])
       const quoted = market[`${leg.side}_bid_dollars`] != null && market[`${leg.side}_ask_dollars`] != null && Number.isFinite(bid) && Number.isFinite(ask)
@@ -366,7 +381,7 @@
       const firstPrice = firstPrices[leg.name]
       const priceMoved = probability !== null && typeof firstPrice === 'number' &&
         Math.abs(Math.round(probability * 10000) - Math.round(firstPrice * 10000)) > 800
-      const state = result === 'yes' || result === 'no' ? (result === leg.side ? 'won' : 'lost') :
+      const state = result === 'yes' || result === 'no' ? (result === leg.side ? 'won' : 'lost') : scalars[leg.name] !== null ? scalarState(scalars[leg.name]) :
         legStatus[leg.name]?.live === true || Date.now() >= Date.parse(startFor(leg)) || (priceMoved && !Number.isFinite(Date.parse(startFor(leg)))) ? 'live' : 'upcoming'
       nearly[leg.name] = state === 'live' && probability !== null ? (probability <= 0.02 ? 'lost' : probability >= 0.98 ? 'won' : null) : null
       states[leg.name] = nearly[leg.name] || state
@@ -378,7 +393,7 @@
     const profit = { now: -depositFee, riding: 0, payout: 0, missingFinishedPayout: false, missingRidingPayout: false }
     for (const slip of slips) {
       const stake = cents(slip.stake)
-      const payout = slip.payout == null ? null : cents(slip.payout)
+      const payout = slip.payout == null ? null : Math.round(cents(slip.payout) * payoutShare(slip, scalars))
       const cashout = cashouts[slip.name]
       const received = cashout ? cents(cashout.amount) : 0
       const fraction = cashout ? Number(cashout.remainingFraction) : 1
@@ -435,13 +450,13 @@
     const legsByName = Object.fromEntries(config.legs.map(leg => [leg.name, leg]))
     const legChips = slip => `<div class="leg-chips">${slip.legs.map(name => {
       const state = states[name]
-      const detail = state === 'won' ? '✓' : state === 'lost' ? '✕' : state === 'live' ? probabilities[name] === null ? 'Live' : `${(probabilities[name] * 100).toFixed(1)}%` : pacific(startFor(legsByName[name]))
+      const detail = scalars[name] != null ? `Settled ${(scalars[name] * 100).toFixed(0)}¢` : state === 'won' ? '✓' : state === 'lost' ? '✕' : state === 'live' ? probabilities[name] === null ? 'Live' : `${(probabilities[name] * 100).toFixed(1)}%` : pacific(startFor(legsByName[name]))
       return `<span class="leg-chip ${state}${slip.status === 'dead' && state === 'lost' ? ' killer' : ''}"><span class="leg-name">${sportTile(legsByName[name]?.ticker, legsByName[name]?.icon)}${escapeHtml(name)}</span><span class="leg-detail">${escapeHtml(detail)}${slip.status === 'dead' && state === 'lost' ? ' · Killed slip' : ''}</span></span>`
     }).join('')}</div>`
     const rows = [...slips].filter(slip => filters.slips[slip.status]).sort((a, b) => slipOrder[a.status] - slipOrder[b.status] || (a.status === 'alive' ? nextStart(a) - nextStart(b) : 0) || a.name.localeCompare(b.name, undefined, { numeric: true })).map(slip => {
       const status = slip.status
       const stake = cents(slip.stake)
-      const payout = slip.payout == null ? null : cents(slip.payout)
+      const payout = slip.payout == null ? null : Math.round(cents(slip.payout) * payoutShare(slip, scalars))
       const cashout = cashouts[slip.name]
       const received = cashout ? cents(cashout.amount) : 0
       const fraction = cashout ? Number(cashout.remainingFraction) : 1
@@ -469,7 +484,7 @@
       const market = markets[leg.ticker] || {}
       const state = timelineStatus(leg)
       const probability = probabilities[leg.name]
-      const percentage = nearly[leg.name] ? `${(probability * 100).toFixed(1)}%` : states[leg.name] === 'won' ? '100.0%' : states[leg.name] === 'lost' ? '0.0%' : probability !== null ? `${(probability * 100).toFixed(1)}%` : 'quote unavailable'
+      const percentage = scalars[leg.name] != null ? `${(scalars[leg.name] * 100).toFixed(1)}%` : nearly[leg.name] ? `${(probability * 100).toFixed(1)}%` : states[leg.name] === 'won' ? '100.0%' : states[leg.name] === 'lost' ? '0.0%' : probability !== null ? `${(probability * 100).toFixed(1)}%` : 'quote unavailable'
       const age = Number.isFinite(market.fetchedAt) ? Math.max(0, Math.floor((Date.now() - market.fetchedAt) / 1000)) : null
       const ageLabel = age === null ? 'No market data yet' : `Updated ${age} seconds ago${age > 360 ? ' (stale)' : ''}`
       const aliveRefs = refs[leg.name].filter(ref => ref.status === 'alive').sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
