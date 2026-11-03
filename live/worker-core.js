@@ -15,6 +15,12 @@ function view(config, snapshot) {
   return { config, markets, legStatus: sameDay ? snapshot.legStatus || {} : {}, firstPrices: sameDay ? snapshot.firstPrices || {} : {} }
 }
 
+function staleness(config, result, failure, now) {
+  const timestamps = Object.values(result.markets).map(market => market.fetchedAt).filter(Number.isFinite)
+  const latest = timestamps.length ? Math.max(...timestamps) : null
+  return config.legs.some(leg => !result.markets[leg.ticker]?.result) && config.legs.some(leg => !result.markets[leg.ticker] || !Number.isFinite(result.markets[leg.ticker].fetchedAt) || now() - result.markets[leg.ticker].fetchedAt > STALE_AFTER_MS) || Boolean(failure && (latest === null || failure.at >= latest))
+}
+
 function authorized(request, key) {
   const given = new URL(request.url).searchParams.get('k') || ''
   if (!key || !given) return false
@@ -35,6 +41,18 @@ export function makeWorker(page, { now = Date.now } = {}) {
       const params = new URL(request.url).searchParams
       const requested = params.get('d') || ''
       if (requested && !DAY.test(requested)) return json({ error: 'Bad date' }, 400)
+      // A routine refresh reads only today's three keys. Archived days never change, so the page keeps
+      // them from its last full fetch. Reading every archive on each 30 second refresh hit the free
+      // plan's 100,000 daily KV reads on 2026-10-31.
+      if (params.get('lite') === '1') {
+        const [config, snapshot, failure] = await Promise.all([
+          env.SCHEDULE.get('config:current', 'json'), env.SCHEDULE.get('snapshot:current', 'json'), env.SCHEDULE.get('poll:error', 'json')
+        ])
+        if (!config) return json({ error: 'No slips uploaded' }, 503)
+        if (requested && requested !== config.date) return json({ error: 'A lite refresh covers the current day only' }, 400)
+        const result = view(config, snapshot)
+        return json({ ...result, stale: staleness(config, result, failure, now), archived: false, lite: true })
+      }
       const [current, days, lists] = await Promise.all([env.SCHEDULE.get('config:current', 'json'), env.SCHEDULE.get('days', 'json'), env.SCHEDULE.get('lists', 'json')])
       const shared = { days: [], lists: lists && typeof lists === 'object' && !Array.isArray(lists) ? lists : {} }
       const archivedDays = Array.isArray(days) ? days.filter(day => DAY.test(day)) : []
@@ -57,10 +75,7 @@ export function makeWorker(page, { now = Date.now } = {}) {
       const config = current
       if (!config) return json({ error: 'No slips uploaded' }, 503)
       const result = view(config, snapshot)
-      const timestamps = Object.values(result.markets).map(market => market.fetchedAt).filter(Number.isFinite)
-      const latest = timestamps.length ? Math.max(...timestamps) : null
-      const stale = config.legs.some(leg => !result.markets[leg.ticker]?.result) && config.legs.some(leg => !result.markets[leg.ticker] || !Number.isFinite(result.markets[leg.ticker].fetchedAt) || now() - result.markets[leg.ticker].fetchedAt > STALE_AFTER_MS) || Boolean(failure && (latest === null || failure.at >= latest))
-      return json({ ...result, stale, archived: false, ...shared })
+      return json({ ...result, stale: staleness(config, result, failure, now), archived: false, ...shared })
     }
   }
 }

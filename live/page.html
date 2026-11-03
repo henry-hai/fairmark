@@ -480,13 +480,28 @@
     }).join('')
   }
 
+  // Archived days never change, so only a full fetch reads them. The routine 30 second refresh asks
+  // for today alone and reuses the archive from the last full fetch, with a full fetch every 10 minutes
+  // to pick up list changes. This keeps Workers KV reads under the free daily limit.
+  let shared = null
+  let refreshes = 0
   async function refresh(force = false) {
     if (localData) { render(localData); return }
     if (!force && lastData?.archived) return
+    const lite = !force && shared !== null && ++refreshes % 20 !== 0
     try {
-      const response = await fetch('/api/schedule' + location.search + (selectedDay ? `&d=${encodeURIComponent(selectedDay)}` : ''), { cache: 'no-store' })
+      const response = await fetch('/api/schedule' + location.search + (selectedDay ? `&d=${encodeURIComponent(selectedDay)}` : '') + (lite ? '&lite=1' : ''), { cache: 'no-store' })
       if (!response.ok) throw new Error(`Schedule unavailable (${response.status})`)
-      render(await response.json())
+      const data = await response.json()
+      if (!data.lite) {
+        shared = { days: data.days, lists: data.lists, history: data.history }
+        render(data)
+        return
+      }
+      // A new day was pushed since the last full fetch, so the saved archive is out of date.
+      if (!shared.days?.includes(data.config.date)) { shared = null; return refresh(true) }
+      const today = { date: data.config.date, config: data.config, markets: data.markets, legStatus: data.legStatus, firstPrices: data.firstPrices }
+      render({ ...data, days: shared.days, lists: shared.lists, history: (shared.history || []).map(day => day.date === today.date ? today : day) })
     } catch (error) {
       document.getElementById('updated').textContent = `${error.message}. Last displayed data may be old.`
       document.getElementById('updated').className = 'intro warning'

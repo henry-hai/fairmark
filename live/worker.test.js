@@ -462,6 +462,24 @@ test('archived days are served frozen and listed with the current day', async ()
   assert.equal((await worker.fetch(new Request('https://example.com/api/schedule?k=private&d=x'), env)).status, 400)
 })
 
+test('a lite refresh reads only the current day keys and never the archive', async () => {
+  const oldConfig = { ...config, date: '2026-10-16' }
+  const store = kv({ 'config:current': config, days: ['2026-10-16'], 'day:2026-10-16': { config: oldConfig, snapshot: {} },
+    'snapshot:current': { date: config.date, markets: { [config.legs[0].ticker]: { result: 'yes', fetchedAt: 1 } } } })
+  const read = []
+  const env = { ACCESS_KEY: 'private', SCHEDULE: { async get(key) { read.push(key); return store.get(key) } } }
+  const worker = makeWorker('', { now: () => 10 ** 12 })
+  const lite = await (await worker.fetch(new Request('https://example.com/api/schedule?k=private&lite=1'), env)).json()
+  assert.deepEqual(read.sort(), ['config:current', 'poll:error', 'snapshot:current'])
+  assert.equal(lite.lite, true)
+  assert.equal(lite.markets[config.legs[0].ticker].result, 'yes')
+  assert.equal(lite.history, undefined)
+  assert.equal((await worker.fetch(new Request('https://example.com/api/schedule?k=private&lite=1&d=2026-10-16'), env)).status, 400)
+  read.length = 0
+  await worker.fetch(new Request('https://example.com/api/schedule?k=private'), env)
+  assert.ok(read.includes('day:2026-10-16'))
+})
+
 test('all-time net includes a cashed-out archive and a day still riding', async () => {
   const oldDate = '2026-10-16'
   const oldConfig = { ...config, date: oldDate, depositFee: '1', cashouts: { '1': { amount: '12', remainingFraction: 0 } } }
