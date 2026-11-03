@@ -27,9 +27,11 @@ def validate_schedule(payload: Path) -> None:
         raise ValueError('Generated schedule is missing cash-outs')
     # Many props and esports legs have no sportsbook line, so a gap warns instead of blocking
     # the upload. The page hides any price column that a day's legs don't all have.
+    # A sportsbook price logged at the buy (book, bookOdds, bookChance) stands in for Bovada's.
     required = ('bovadaOdds', 'bovadaImplied', 'pinnacleRaw', 'fair')
     missing = [f"{leg.get('name', '<unnamed>')}: {field}"
-               for leg in config['legs'] for field in required if leg.get(field) is None]
+               for leg in config['legs'] for field in required if leg.get(field) is None
+               and not (field.startswith('bovada') and leg.get('bookOdds') is not None)]
     if missing:
         print('Warning, missing sportsbook prices:\n' + '\n'.join(missing), file=sys.stderr)
     for leg in config['legs']:
@@ -43,8 +45,98 @@ def validate_schedule(payload: Path) -> None:
             value = leg.get(key)
             if value is not None and (not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 < value <= 1):
                 raise ValueError(f'Invalid {key} chance')
-        if leg.get('fair') is not None and leg.get('fairSource') != 'Pinnacle no-vig':
-            raise ValueError('Fair reference must be Pinnacle no-vig')
+        if leg.get('fair') is not None and leg.get('fairSource') not in FAIR_SOURCES:
+            raise ValueError('Fair reference must be Pinnacle no-vig or Derived')
+        odds, chance = leg.get('bookOdds'), leg.get('bookChance')
+        if odds is not None and (not isinstance(leg.get('book'), str) or not isinstance(odds, str)
+                                 or not isinstance(chance, (int, float))
+                                 or not math.isclose(implied_probability(odds), chance)):
+            raise ValueError('Sportsbook chance does not match its odds')
+        ask = leg.get('askAtBuy')
+        if ask is not None and (not isinstance(ask, (int, float)) or not 0 < ask < 1):
+            raise ValueError('Invalid ask at buy')
+
+
+# Kept when a later push finds nothing, so a push after kickoff no longer wipes the pregame prices.
+SAVED_PRICES = ('bovadaOdds', 'bovadaImplied', 'pinnacleRaw', 'fair', 'fairSource',
+                'book', 'bookOdds', 'bookChance', 'askAtBuy')
+FAIR_SOURCES = ('Pinnacle no-vig', 'Derived')
+BOOK_MARKS = (('DraftKings', ('draftkings', ' dk ')), ('Bovada', ('bovada',)),
+              ('FanDuel', ('fanduel',)), ('BetMGM', ('betmgm',)))
+
+
+def book_named(text: str) -> str | None:
+    padded = f" {text.casefold().replace(':', ' ')} "
+    return next((book for book, marks in BOOK_MARKS if any(mark in padded for mark in marks)), None)
+
+
+def quoted_pinnacle(source: str) -> bool:
+    """True when the fair is Pinnacle's own no-vig quote, e.g. "Bovada odds, fair Pinnacle no-vig"."""
+    lowered = source.casefold()
+    return 'pinnacle no-vig' in lowered and not any(word in lowered for word in ('estimate', 'derived', 'minus', 'model'))
+
+
+def number(text: str) -> float | None:
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    return value if math.isfinite(value) else None
+
+
+def read_prices(path: Path) -> dict[str, dict]:
+    """Read data/slips/<date>.prices, the prices logged at each buy, keyed by leg name.
+
+    Each line is: leg | Kalshi ask at buy | sportsbook odds | sportsbook implied | Pinnacle line |
+    fair | fair source | pulled. The sportsbook comes from the header's odds column when it names
+    one, else from the fair source text.
+    """
+    if not path.is_file():
+        return {}
+    header_book = None
+    prices = {}
+    for line in path.read_text().splitlines():
+        fields = [field.strip() for field in line.lstrip('#').split('|')]
+        if line.startswith('#'):
+            header_book = header_book or (book_named(fields[2]) if len(fields) > 2 else None)
+            continue
+        if len(fields) < 7 or not fields[0]:
+            continue
+        name, ask, odds, _, _, fair, source = fields[:7]
+        entry = {}
+        ask_value = number(ask)
+        if ask_value is not None and 0 < ask_value < 1:
+            entry['askAtBuy'] = ask_value
+        book = header_book or book_named(source)
+        # Odds with no named sportsbook could be anyone's, Pinnacle's included, so they are left out.
+        if book and odds.lstrip('+-').isdigit() and odds[0] in '+-':
+            entry.update(book=book, bookOdds=odds, bookChance=implied_probability(odds))
+        fair_value = number(fair)
+        if fair_value is not None and 0 < fair_value <= 1:
+            entry.update(fair=fair_value, fairSource='Pinnacle no-vig' if quoted_pinnacle(source) else 'Derived')
+        prices[name.casefold()] = entry
+    return prices
+
+
+def fill_prices(config: dict, saved: dict | None, prices: dict[str, dict]) -> None:
+    """Fill each leg from the last upload for the same day, then from the prices logged at the buy.
+
+    The logged ask and sportsbook price are what Henry actually saw, so they win. A logged fair only
+    fills a gap, since a quoted Pinnacle fair beats a derived one.
+    """
+    previous = {(leg.get('name'), leg.get('ticker')): leg for leg in (saved or {}).get('legs', [])} \
+        if isinstance(saved, dict) and saved.get('date') == config.get('date') else {}
+    for leg in config['legs']:
+        old = previous.get((leg.get('name'), leg.get('ticker')), {})
+        for key in SAVED_PRICES:
+            if leg.get(key) is None and old.get(key) is not None:
+                leg[key] = old[key]
+        entry = prices.get(str(leg.get('name', '')).casefold(), {})
+        for key in ('askAtBuy', 'book', 'bookOdds', 'bookChance'):
+            if key in entry:
+                leg[key] = entry[key]
+        if leg.get('fair') is None and 'fair' in entry:
+            leg['fair'], leg['fairSource'] = entry['fair'], entry['fairSource']
 
 
 def wrangler_kv(*args: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -100,6 +192,9 @@ def main() -> None:
         parser.error(f'Missing {source}')
     subprocess.run([sys.executable, str(ROOT / 'scripts' / 'schedule.py'), str(args.date)], check=True, cwd=ROOT)
     payload = ROOT / 'schedule' / f'{args.date}.json'
+    config = json.loads(payload.read_text())
+    fill_prices(config, kv_get('config:current'), read_prices(source.with_suffix('.prices')))
+    payload.write_text(json.dumps(config, indent=2))
     validate_schedule(payload)
     archived = archive_previous(args.date.isoformat())
     if archived:
