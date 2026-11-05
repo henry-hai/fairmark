@@ -1,0 +1,12 @@
+name = "fairmark-poller"
+main = "index.js"
+compatibility_date = "2026-10-21"
+workers_dev = false
+
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fairmark-live"
+database_id = "b2fab848-6b9f-4ede-b97f-9d0f2121747e"
