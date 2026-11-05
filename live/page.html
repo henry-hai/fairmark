@@ -354,13 +354,13 @@
     const marketAges = config.legs.map(leg => markets[leg.ticker]?.fetchedAt).filter(Number.isFinite).map(fetchedAt => Math.max(0, Math.floor((Date.now() - fetchedAt) / 1000)))
     const oldestAge = marketAges.length ? Math.max(...marketAges) : null
     const settled = config.legs.every(leg => markets[leg.ticker]?.result)
-    const needsRefresh = !settled && (stale || oldestAge === null || oldestAge > 360)
+    const needsRefresh = !settled && (stale || oldestAge === null || oldestAge > 120)
     document.getElementById('title').textContent = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(config.date + 'T12:00:00Z'))
     const updated = document.getElementById('updated')
-    // When the Mac poller sleeps, say plainly that prices stopped and since when, instead of a vague stale note.
+    // When the poller stops, say plainly that prices stopped and since when, instead of a vague stale note.
     const newestAge = marketAges.length ? Math.min(...marketAges) : null
-    const pausedSince = newestAge !== null && newestAge > 600 ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' }).format(new Date(Date.now() - newestAge * 1000)) : null
-    updated.textContent = data.archived ? 'Pacific time. Archived day, final results.' : settled ? 'Pacific time. Every leg has settled.' : pausedSince ? `Prices paused since ${pausedSince} PT, ${Math.round(newestAge / 60)} minutes ago. The Mac poller may be asleep.` : `Pacific time. ${oldestAge === null ? 'Waiting for market data' : needsRefresh ? 'Some market data is missing or stale' : 'Market data is current'}.`
+    const pausedSince = newestAge !== null && newestAge > 120 ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' }).format(new Date(Date.now() - newestAge * 1000)) : null
+    updated.textContent = data.archived ? 'Pacific time. Archived day, final results.' : settled ? 'Pacific time. Every leg has settled.' : pausedSince ? `Prices paused since ${pausedSince} PT, ${Math.round(newestAge / 60)} minutes ago. The cloud poller may be down.` : `Pacific time. ${oldestAge === null ? 'Waiting for market data' : needsRefresh ? 'Some market data is missing or stale' : 'Market data is current'}.`
     updated.className = needsRefresh && !data.archived ? 'intro warning' : 'intro'
     const days = Array.isArray(data.days) ? data.days : []
     document.getElementById('days').innerHTML = days.length > 1 ? days.map(day => `<button type="button" class="filter-chip" data-day="${escapeHtml(day)}" aria-pressed="${day === config.date}">${escapeHtml(dayLabel(day))}</button>`).join('') : ''
@@ -492,7 +492,7 @@
       const probability = probabilities[leg.name]
       const percentage = scalars[leg.name] != null ? `${(scalars[leg.name] * 100).toFixed(1)}%` : nearly[leg.name] ? `${(probability * 100).toFixed(1)}%` : states[leg.name] === 'won' ? '100.0%' : states[leg.name] === 'lost' ? '0.0%' : probability !== null ? `${(probability * 100).toFixed(1)}%` : 'quote unavailable'
       const age = Number.isFinite(market.fetchedAt) ? Math.max(0, Math.floor((Date.now() - market.fetchedAt) / 1000)) : null
-      const ageLabel = age === null ? 'No market data yet' : `Updated ${age} seconds ago${age > 360 ? ' (stale)' : ''}`
+      const ageLabel = age === null ? 'No market data yet' : `Updated ${age} seconds ago${age > 120 ? ' (stale)' : ''}`
       const aliveRefs = refs[leg.name].filter(ref => ref.status === 'alive').sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
       const riding = aliveRefs.reduce((total, ref) => total + ref.stake, 0)
       const links = aliveRefs.map(ref => `<a href="#slip-${encodeURIComponent(ref.name)}">#${escapeHtml(ref.name)}</a>`).join(' ')
@@ -501,15 +501,15 @@
     }).join('')
   }
 
-  // Archived days never change, so only a full fetch reads them. The routine 30 second refresh asks
+  // Archived days never change, so only a full fetch reads them. The routine 10 second refresh asks
   // for today alone and reuses the archive from the last full fetch, with a full fetch every 10 minutes
-  // to pick up list changes. This keeps Workers KV reads under the free daily limit.
+  // to pick up list changes.
   let shared = null
   let refreshes = 0
   async function refresh(force = false) {
     if (localData) { render(localData); return }
     if (!force && lastData?.archived) return
-    const lite = !force && shared !== null && ++refreshes % 20 !== 0
+    const lite = !force && shared !== null && ++refreshes % 60 !== 0
     try {
       const response = await fetch('/api/schedule' + location.search + (selectedDay ? `&d=${encodeURIComponent(selectedDay)}` : '') + (lite ? '&lite=1' : ''), { cache: 'no-store' })
       if (!response.ok) throw new Error(`Schedule unavailable (${response.status})`)
@@ -529,7 +529,7 @@
     }
   }
   refresh()
-  setInterval(refresh, 30000)
+  setInterval(refresh, 10000)
   setInterval(() => { if (lastData) render(lastData) }, 1000)
 </script>
 </body>

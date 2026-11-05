@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { runInNewContext } from 'node:vm'
+import { fakeD1 } from './poller/fake-d1.js'
+import { d1Store } from './poller/poller-core.js'
 import { makeWorker } from './worker-core.js'
 
 const config = {
@@ -50,14 +52,14 @@ test('Worker only exposes fetch and serves stored markets with individual timest
   assert.deepEqual(payload.firstPrices, { Azure: 0.42 })
 })
 
-test('five minute polling stays current for six minutes and failures mark data stale', async () => {
+test('prices stay current for two minutes and failures mark data stale', async () => {
   const stored = { date: config.date, markets: Object.fromEntries(config.legs.map(leg => [leg.ticker, { ticker: leg.ticker, fetchedAt: 1000 }])) }
   const store = kv({ 'config:current': config, 'snapshot:current': stored })
   const env = { ACCESS_KEY: 'private', SCHEDULE: store }
   const url = 'https://example.com/api/schedule?k=private'
-  const current = makeWorker('', { now: () => 300000 })
+  const current = makeWorker('', { now: () => 100000 })
   assert.equal((await (await current.fetch(new Request(url), env)).json()).stale, false)
-  const expired = makeWorker('', { now: () => 370001 })
+  const expired = makeWorker('', { now: () => 121001 })
   assert.equal((await (await expired.fetch(new Request(url), env)).json()).stale, true)
   const failedEnv = { ...env, SCHEDULE: kv({ 'config:current': config, 'snapshot:current': stored, 'poll:error': { at: 2000 } }) }
   assert.equal((await (await current.fetch(new Request(url), failedEnv)).json()).stale, true)
@@ -497,6 +499,27 @@ test('a lite refresh reads only the current day keys and never the archive', asy
   assert.ok(read.includes('day:2026-10-16'))
 })
 
+test('with D1 bound the page data comes from D1, including the archive', async () => {
+  const DB = fakeD1()
+  const store = d1Store(DB)
+  const oldConfig = { ...config, date: '2026-10-16' }
+  await store.put('config:current', config, 1)
+  await store.put('days', ['2026-10-16'], 1)
+  await store.put('day:2026-10-16', { config: oldConfig, snapshot: { date: '2026-10-16', markets: { [config.legs[0].ticker]: { result: 'yes', fetchedAt: 1 } } } }, 1)
+  await store.put('snapshot:current', { date: config.date, markets: { [config.legs[0].ticker]: { yes_bid_dollars: '0.40', fetchedAt: 900 } } }, 1)
+  const env = { ACCESS_KEY: 'private', DB, SCHEDULE: { async get() { throw new Error('KV should not be read') } } }
+  const worker = makeWorker('', { now: () => 1000 })
+  const full = await (await worker.fetch(new Request('https://example.com/api/schedule?k=private'), env)).json()
+  assert.deepEqual(full.days, ['2026-10-16', '2026-10-17'])
+  assert.equal(full.history[0].markets[config.legs[0].ticker].result, 'yes')
+  assert.equal(full.markets[config.legs[0].ticker].yes_bid_dollars, '0.40')
+  const lite = await (await worker.fetch(new Request('https://example.com/api/schedule?k=private&lite=1'), env)).json()
+  assert.equal(lite.lite, true)
+  assert.equal(lite.history, undefined)
+  const archived = await (await worker.fetch(new Request('https://example.com/api/schedule?k=private&d=2026-10-16'), env)).json()
+  assert.equal(archived.archived, true)
+})
+
 test('all-time net includes a cashed-out archive and a day still riding', async () => {
   const oldDate = '2026-10-16'
   const oldConfig = { ...config, date: oldDate, depositFee: '1', cashouts: { '1': { amount: '12', remainingFraction: 0 } } }
@@ -576,13 +599,13 @@ test('private pricing uses the ask at buy after settlement and tags an estimated
   assert.doesNotMatch(row, /100\.0¢/)
 })
 
-test('private page says when prices paused because the poller slept', async () => {
+test('private page says when prices paused because the poller stopped', async () => {
   const now = Date.parse('2026-10-17T03:00:00Z')
   const document = await renderPage({ config:{ date:config.date,
     legs:[{ name:'Later', ticker:'L', side:'yes', start:'2026-10-17T05:00:00Z' }],
     slips:[{ name:'1', stake:'10', payout:'20', legs:['Later'] }] },
     markets:{ L:{ yes_ask_dollars:'0.70', fetchedAt:now - 30 * 60 * 1000 } }, stale:true }, { now })
-  assert.match(document.getElementById('updated').textContent, /^Prices paused since .+ PT, 30 minutes ago\. The Mac poller may be asleep\.$/)
+  assert.match(document.getElementById('updated').textContent, /^Prices paused since .+ PT, 30 minutes ago\. The cloud poller may be down\.$/)
 })
 
 test('finished private day shows the settled result by the header', async () => {
