@@ -549,7 +549,7 @@ test('private pricing shows a dash for missing sportsbook prices', async () => {
   const unpriced = rows.match(/<tr class="pricing-row"><td class="outcome"><span class="leg-line"><span class="sport-tile"[^>]*>🏆<\/span>Unpriced[\s\S]*?<\/tr>/)[0]
   assert.equal(unpriced.match(/<span class="figure muted">—<\/span>/g).length, 3)
   assert.doesNotMatch(rows, /Not available|undefined|N\/A/)
-  assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">vs\. Sportsbook<\/th><th scope="col">Fair, no vig<\/th><\/tr>/)
+  assert.match(html, /Kalshi ask<\/th><th scope="col">Sportsbook<\/th><th scope="col">Edge vs\. Sportsbook<\/th><th scope="col">Fair, no vig<\/th><\/tr>/)
   assert.doesNotMatch(html, /Edge after fee|<th scope="col">Fee/)
   assert.match(html, /--bg: #091321; --panel: #112136; --panel2: #172a43/)
   assert.match(html, /font: 15px\/1\.55 Inter/)
@@ -572,7 +572,7 @@ test('private pricing uses the ask at buy after settlement and tags an estimated
   const row = document.getElementById('pricing').innerHTML
   assert.match(row, /85\.0¢<\/span><small class="source">at buy<\/small>/)
   assert.match(row, /<span class="book-tag [^"]*">Estimate<\/span><span class="figure">84\.0%/)
-  assert.match(row, /data-label="vs\. Sportsbook">.*?\+0\.3 pts/)
+  assert.match(row, /data-label="Edge vs\. Sportsbook">.*?\+0\.3 pts/)
   assert.doesNotMatch(row, /100\.0¢/)
 })
 
