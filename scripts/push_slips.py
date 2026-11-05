@@ -9,6 +9,7 @@ import math
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import date
 from pathlib import Path
 
@@ -169,6 +170,32 @@ def kv_put(key: str, value) -> None:
         Path(handle.name).unlink(missing_ok=True)
 
 
+def d1_put(key: str, text: str) -> None:
+    """Upsert one key in D1. D1 caps a SQL statement at 100 KB, so long values go in pieces."""
+    pieces = [text[i:i + 60000].replace("'", "''") for i in range(0, len(text), 60000)] or ['']
+    now = int(time.time() * 1000)
+    lines = [f"INSERT INTO store (key, value, updated_at) VALUES ('{key}', '{pieces[0]}', {now}) "
+             'ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at;']
+    lines += [f"UPDATE store SET value = value || '{piece}' WHERE key = '{key}';" for piece in pieces[1:]]
+    with tempfile.NamedTemporaryFile('w', suffix='.sql', delete=False) as handle:
+        handle.write('\n'.join(lines))
+    try:
+        subprocess.run(['npx', 'wrangler', 'd1', 'execute', 'fairmark-live', '--remote', '--file', handle.name,
+                        '--config', str(ROOT / 'live' / 'poller' / 'wrangler.toml')],
+                       check=True, cwd=ROOT, capture_output=True, text=True)
+    finally:
+        Path(handle.name).unlink(missing_ok=True)
+
+
+def mirror_to_d1(keys: dict[str, str]) -> None:
+    """Copy an upload to D1 for the cloud poller. KV is still what the live page reads, so a failure only warns."""
+    try:
+        for key, text in keys.items():
+            d1_put(key, text)
+    except (subprocess.CalledProcessError, OSError) as error:
+        print(f'Warning, D1 copy failed: {type(error).__name__}', file=sys.stderr)
+
+
 def archive_previous(new_day: str, get=kv_get, put=kv_put) -> str | None:
     """Freeze the day currently live under day:<date> before a different day replaces it."""
     current = get('config:current')
@@ -203,6 +230,8 @@ def main() -> None:
     lists = ROOT / 'data' / 'lists.json'
     if lists.is_file():
         wrangler_kv('put', 'lists', '--path', str(lists))
+    mirror_to_d1({'config:current': json.dumps(config, separators=(',', ':')),
+                  **({'lists': lists.read_text()} if lists.is_file() else {})})
     print(f'Uploaded {args.date} slips to Workers KV')
 
 
