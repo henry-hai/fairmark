@@ -35,7 +35,7 @@ Won, dead, cashed out and still riding, with a total for the day.
 
 ## Stack
 
-Python 3.12 with uv, Cloudflare Pages Functions, Workers KV, The Odds API for sportsbook lines, and a poller for Kalshi market updates.
+Python 3.12 with uv, Cloudflare Pages Functions, D1 and Workers KV, The Odds API for sportsbook lines, and a Cloudflare cron Worker for Kalshi market updates.
 
 ## Run locally
 

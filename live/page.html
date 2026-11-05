@@ -10,7 +10,8 @@
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    main { width: min(100%, 940px); margin: auto; padding: 20px 14px 48px; }
+    main { width: min(100%, 1160px); margin: auto; padding: 20px 28px 48px; }
+    @media (max-width: 600px) { main { padding-left: 16px; padding-right: 16px; } }
     h1 { font-size: clamp(1.55rem, 5vw, 2.2rem); line-height: 1.15; margin: 0 0 8px; }
     h2 { font-size: 1.28rem; margin: 32px 0 12px; }
     p { margin: 0; }
@@ -167,12 +168,12 @@
   <header><h1 id="title">Fairmark Live</h1><p class="intro" id="updated">Loading schedule</p><div class="filters days" id="days" role="group" aria-label="Days"></div><div class="track-record" id="track-record"></div></header>
   <section class="profit-tracker" aria-label="Profit tracker" id="profit-tracker"></section>
   <section class="summary" aria-label="Totals" id="summary"></section>
-  <section aria-labelledby="pricing-heading"><details class="fold" data-expand-key="section:pricing" open><summary class="section-top"><h2 id="pricing-heading">Price vs. Sportsbook</h2><p>The sportsbook price keeps the vig, so it shows what a bettor actually pays there. Beating it is the edge. Fair is Pinnacle with the vig removed, a reference marked Estimate when Pinnacle has no line at that threshold.</p></summary><div class="table-wrap"><table class="pricing-table"><thead><tr id="pricing-head"><th scope="col">Market and Pacific event start</th><th scope="col">Kalshi ask</th><th scope="col">Sportsbook</th><th scope="col">vs. Sportsbook</th><th scope="col">Fair, no vig</th></tr></thead><tbody id="pricing"></tbody></table></div></details></section>
+  <section aria-labelledby="pricing-heading"><details class="fold" data-expand-key="section:pricing" open><summary class="section-top"><h2 id="pricing-heading">Price vs. Sportsbook</h2><p>The sportsbook price keeps the vig, so it shows what a bettor actually pays there. Beating it is the edge. Fair is Pinnacle with the vig removed, a reference marked Estimate when Pinnacle has no line at that threshold.</p></summary><div class="table-wrap"><table class="pricing-table"><thead><tr id="pricing-head"><th scope="col">Market and Pacific event start</th><th scope="col">Kalshi ask</th><th scope="col">Sportsbook</th><th scope="col">Edge vs. Sportsbook</th><th scope="col">Fair, no vig</th></tr></thead><tbody id="pricing"></tbody></table></div></details></section>
   <section aria-labelledby="timeline-heading"><details class="fold" data-expand-key="section:timeline" open><summary class="section-top"><h2 id="timeline-heading">Timeline</h2><p>Live prices and final results from Kalshi.</p></summary><div class="filter-row"><div class="filters" id="timeline-filters" role="group" aria-label="Timeline status filters"></div><span class="chance-pill" id="day-chance-timeline">Day in Progress</span></div><ol class="timeline" id="timeline"></ol></details></section>
   <section aria-labelledby="slips-heading"><details class="fold" data-expand-key="section:slips" open><summary class="section-top"><h2 id="slips-heading">Slips</h2><p>Profit is potential while a slip is alive.</p></summary><div class="filter-row"><div class="filters" id="slip-filters" role="group" aria-label="Slip status filters"></div><span class="chance-pill" id="day-result-slips">Live · Profit Now</span></div><div class="table-wrap"><table><thead><tr><th scope="col">Slip and legs</th><th scope="col">Stake</th><th scope="col">Max payout</th><th scope="col">Profit</th><th scope="col">Legs hit</th><th scope="col">Status</th></tr></thead><tbody id="slips"></tbody></table></div><p class="note">Profit is potential for alive slips and settled for won, dead or cashed out slips. Payout totals include only slips with a confirmed payout. Percentages use the midpoint of the Kalshi bid and ask.</p></details></section>
   <section class="questions" id="common-questions"><h2>Common Questions</h2>
     <details data-expand-key="question:0"><summary>What is no-vig fair?</summary><p>Bovada implied chance shows what a sportsbook bettor actually pays, vig included. Pinnacle raw implied chance also includes vig. Pinnacle no-vig fair divides each outcome by the sum of every outcome, including all three in a three-way market. Pinnacle has the smallest vig of any sportsbook, so its no-vig chance is the closest to the true one. It is shown as a reference next to the sportsbook price.</p></details>
-    <details data-expand-key="question:1"><summary>What do vs. Sportsbook, at buy and Estimate mean?</summary><p>vs. Sportsbook is the sportsbook's win chance minus the Kalshi ask, in points. An 83¢ ask against DraftKings at 86.3% is +3.3 pts, so Kalshi was 3.3 points cheaper than betting it there. Kalshi's fee is already in the stake and payout of each slip, so nothing is taken off again. At buy means the ask is the price when the leg was bought, since the live ask jumps to 100¢ once a leg settles. Estimate means Pinnacle has no line at Kalshi's exact threshold, like 8+ rebounds when it only posts 11.5, so the fair is worked out from the DraftKings line at that threshold and Pinnacle's main line.</p></details>
+    <details data-expand-key="question:1"><summary>What do Edge vs. Sportsbook, at buy and Estimate mean?</summary><p>Edge vs. Sportsbook is the sportsbook's win chance minus the Kalshi ask, in points. An 83¢ ask against DraftKings at 86.3% is +3.3 pts, so Kalshi was 3.3 points cheaper than betting it there. Kalshi's fee is already in the stake and payout of each slip, so nothing is taken off again. At buy means the ask is the price when the leg was bought, since the live ask jumps to 100¢ once a leg settles. Estimate means Pinnacle has no line at Kalshi's exact threshold, like 8+ rebounds when it only posts 11.5, so the fair is worked out from the DraftKings line at that threshold and Pinnacle's main line.</p></details>
     <details data-expand-key="question:stake"><summary>Why aren't stakes round numbers?</summary><p>Kalshi's fee is part of what each bet costs, so a $100 bet can show as $99.98. The stake, payout and profit on every slip are Kalshi's own numbers with the fee already in them.</p></details>
     <details data-expand-key="question:2"><summary>How is the day's chance calculated?</summary><p>The public model runs 100,000 trials of the whole slate and samples each shared leg once per trial.</p></details>
     <details data-expand-key="question:3"><summary>Why does the demo slate refresh every 30 minutes?</summary><p>The market and combo search rebuilds the modeled slate every 30 minutes. Existing Kalshi quotes are checked on each poll, so their displayed prices can change sooner.</p></details>
@@ -269,7 +270,7 @@
     // in each slip's stake and payout, so no fee is taken off here.
     const figure = text => `<span class="figure">${text}</span>`
     const vsBook = validAsk && book ? figure(`<span class="edge ${book.chance - ask < 0 ? 'negative' : ''}">${book.chance - ask > 0 ? '+' : ''}${((book.chance - ask) * 100).toFixed(1)} pts</span>`) : book ? figure('Price pending') : missing
-    return `<tr class="pricing-row"><td class="outcome"><span class="leg-line">${sportTile(leg.ticker, leg.icon)}${escapeHtml(leg.name)}</span><small>${escapeHtml(timelineStamp(start))} Pacific</small></td><td data-label="Kalshi ask">${spacer}${figure(validAsk ? priceCents(ask) : 'Price pending')}${atBuy ? '<small class="source">at buy</small>' : ''}</td><td data-label="Sportsbook">${book ? `${bookTag(book.book)}${figure(chance(book.chance))}<small class="source">${escapeHtml(book.odds)}</small>` : spacer + missing}</td><td data-label="vs. Sportsbook">${spacer}${vsBook}</td><td data-label="Fair, no vig">${validFair ? bookTag(derivedFair ? 'Estimate' : 'Pinnacle') + figure(pct(fair)) : spacer + missing}</td></tr>`
+    return `<tr class="pricing-row"><td class="outcome"><span class="leg-line">${sportTile(leg.ticker, leg.icon)}${escapeHtml(leg.name)}</span><small>${escapeHtml(timelineStamp(start))} Pacific</small></td><td data-label="Kalshi ask">${spacer}${figure(validAsk ? priceCents(ask) : 'Price pending')}${atBuy ? '<small class="source">at buy</small>' : ''}</td><td data-label="Sportsbook">${book ? `${bookTag(book.book)}${figure(chance(book.chance))}<small class="source">${escapeHtml(book.odds)}</small>` : spacer + missing}</td><td data-label="Edge vs. Sportsbook">${spacer}${vsBook}</td><td data-label="Fair, no vig">${validFair ? bookTag(derivedFair ? 'Estimate' : 'Pinnacle') + figure(pct(fair)) : spacer + missing}</td></tr>`
   }
 
   for (const [group, elementId] of [['timeline', 'timeline-filters'], ['slips', 'slip-filters']]) {
@@ -353,13 +354,13 @@
     const marketAges = config.legs.map(leg => markets[leg.ticker]?.fetchedAt).filter(Number.isFinite).map(fetchedAt => Math.max(0, Math.floor((Date.now() - fetchedAt) / 1000)))
     const oldestAge = marketAges.length ? Math.max(...marketAges) : null
     const settled = config.legs.every(leg => markets[leg.ticker]?.result)
-    const needsRefresh = !settled && (stale || oldestAge === null || oldestAge > 360)
+    const needsRefresh = !settled && (stale || oldestAge === null || oldestAge > 120)
     document.getElementById('title').textContent = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(config.date + 'T12:00:00Z'))
     const updated = document.getElementById('updated')
-    // When the Mac poller sleeps, say plainly that prices stopped and since when, instead of a vague stale note.
+    // When the poller stops, say plainly that prices stopped and since when, instead of a vague stale note.
     const newestAge = marketAges.length ? Math.min(...marketAges) : null
-    const pausedSince = newestAge !== null && newestAge > 600 ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' }).format(new Date(Date.now() - newestAge * 1000)) : null
-    updated.textContent = data.archived ? 'Pacific time. Archived day, final results.' : settled ? 'Pacific time. Every leg has settled.' : pausedSince ? `Prices paused since ${pausedSince} PT, ${Math.round(newestAge / 60)} minutes ago. The Mac poller may be asleep.` : `Pacific time. ${oldestAge === null ? 'Waiting for market data' : needsRefresh ? 'Some market data is missing or stale' : 'Market data is current'}.`
+    const pausedSince = newestAge !== null && newestAge > 120 ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' }).format(new Date(Date.now() - newestAge * 1000)) : null
+    updated.textContent = data.archived ? 'Pacific time. Archived day, final results.' : settled ? 'Pacific time. Every leg has settled.' : pausedSince ? `Prices paused since ${pausedSince} PT, ${Math.round(newestAge / 60)} minutes ago. The cloud poller may be down.` : `Pacific time. ${oldestAge === null ? 'Waiting for market data' : needsRefresh ? 'Some market data is missing or stale' : 'Market data is current'}.`
     updated.className = needsRefresh && !data.archived ? 'intro warning' : 'intro'
     const days = Array.isArray(data.days) ? data.days : []
     document.getElementById('days').innerHTML = days.length > 1 ? days.map(day => `<button type="button" class="filter-chip" data-day="${escapeHtml(day)}" aria-pressed="${day === config.date}">${escapeHtml(dayLabel(day))}</button>`).join('') : ''
@@ -491,7 +492,7 @@
       const probability = probabilities[leg.name]
       const percentage = scalars[leg.name] != null ? `${(scalars[leg.name] * 100).toFixed(1)}%` : nearly[leg.name] ? `${(probability * 100).toFixed(1)}%` : states[leg.name] === 'won' ? '100.0%' : states[leg.name] === 'lost' ? '0.0%' : probability !== null ? `${(probability * 100).toFixed(1)}%` : 'quote unavailable'
       const age = Number.isFinite(market.fetchedAt) ? Math.max(0, Math.floor((Date.now() - market.fetchedAt) / 1000)) : null
-      const ageLabel = age === null ? 'No market data yet' : `Updated ${age} seconds ago${age > 360 ? ' (stale)' : ''}`
+      const ageLabel = age === null ? 'No market data yet' : `Updated ${age} seconds ago${age > 120 ? ' (stale)' : ''}`
       const aliveRefs = refs[leg.name].filter(ref => ref.status === 'alive').sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
       const riding = aliveRefs.reduce((total, ref) => total + ref.stake, 0)
       const links = aliveRefs.map(ref => `<a href="#slip-${encodeURIComponent(ref.name)}">#${escapeHtml(ref.name)}</a>`).join(' ')
@@ -500,15 +501,15 @@
     }).join('')
   }
 
-  // Archived days never change, so only a full fetch reads them. The routine 30 second refresh asks
+  // Archived days never change, so only a full fetch reads them. The routine 10 second refresh asks
   // for today alone and reuses the archive from the last full fetch, with a full fetch every 10 minutes
-  // to pick up list changes. This keeps Workers KV reads under the free daily limit.
+  // to pick up list changes.
   let shared = null
   let refreshes = 0
   async function refresh(force = false) {
     if (localData) { render(localData); return }
     if (!force && lastData?.archived) return
-    const lite = !force && shared !== null && ++refreshes % 20 !== 0
+    const lite = !force && shared !== null && ++refreshes % 60 !== 0
     try {
       const response = await fetch('/api/schedule' + location.search + (selectedDay ? `&d=${encodeURIComponent(selectedDay)}` : '') + (lite ? '&lite=1' : ''), { cache: 'no-store' })
       if (!response.ok) throw new Error(`Schedule unavailable (${response.status})`)
@@ -528,7 +529,7 @@
     }
   }
   refresh()
-  setInterval(refresh, 30000)
+  setInterval(refresh, 10000)
   setInterval(() => { if (lastData) render(lastData) }, 1000)
 </script>
 </body>

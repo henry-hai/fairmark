@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve a local slip file and upload its private schedule to Workers KV."""
+"""Resolve a local slip file and upload its private schedule to D1."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import math
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import date
 from pathlib import Path
 
@@ -139,37 +140,43 @@ def fill_prices(config: dict, saved: dict | None, prices: dict[str, dict]) -> No
             leg['fair'], leg['fairSource'] = entry['fair'], entry['fairSource']
 
 
-def wrangler_kv(*args: str, check: bool = True) -> subprocess.CompletedProcess:
-    return subprocess.run(['npx', 'wrangler', 'kv', 'key', *args, '--binding', 'SCHEDULE', '--remote',
-                           '--config', str(ROOT / 'live' / 'wrangler.toml')],
+def wrangler_d1(*args: str, check: bool = True) -> subprocess.CompletedProcess:
+    return subprocess.run(['npx', 'wrangler', 'd1', 'execute', 'fairmark-live', '--remote', *args,
+                           '--config', str(ROOT / 'live' / 'poller' / 'wrangler.toml')],
                           check=check, cwd=ROOT, capture_output=True, text=True)
 
 
-def kv_get(key: str):
+def d1_get(key: str):
     """Return the stored JSON, None when the key does not exist, and raise on any other failure."""
-    result = wrangler_kv('get', key, check=False)
+    result = wrangler_d1('--json', '--command', f"SELECT value FROM store WHERE key = '{key}'", check=False)
     if result.returncode != 0:
-        if '404' in result.stderr or '404' in result.stdout:
-            return None
-        raise RuntimeError(f'Could not read {key} from Workers KV, nothing was uploaded')
-    if not result.stdout.strip():
-        return None
+        raise RuntimeError(f'Could not read {key} from D1, nothing was uploaded')
     try:
-        return json.loads(result.stdout)
-    except ValueError:
-        raise RuntimeError(f'{key} in Workers KV is not valid JSON, nothing was uploaded') from None
+        rows = json.loads(result.stdout)[0]['results']
+        return json.loads(rows[0]['value']) if rows else None
+    except (ValueError, LookupError, TypeError):
+        raise RuntimeError(f'{key} in D1 is not valid JSON, nothing was uploaded') from None
 
 
-def kv_put(key: str, value) -> None:
-    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as handle:
-        json.dump(value, handle, separators=(',', ':'))
+def d1_statements(key: str, text: str, now: int) -> list[str]:
+    """Upsert one key. D1 caps a SQL statement at 100 KB, so long values go in pieces."""
+    pieces = [text[i:i + 60000].replace("'", "''") for i in range(0, len(text), 60000)] or ['']
+    lines = [f"INSERT INTO store (key, value, updated_at) VALUES ('{key}', '{pieces[0]}', {now}) "
+             'ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at;']
+    return lines + [f"UPDATE store SET value = value || '{piece}' WHERE key = '{key}';" for piece in pieces[1:]]
+
+
+def d1_put(key: str, value) -> None:
+    lines = d1_statements(key, json.dumps(value, separators=(',', ':')), int(time.time() * 1000))
+    with tempfile.NamedTemporaryFile('w', suffix='.sql', delete=False) as handle:
+        handle.write('\n'.join(lines))
     try:
-        wrangler_kv('put', key, '--path', handle.name)
+        wrangler_d1('--file', handle.name)
     finally:
         Path(handle.name).unlink(missing_ok=True)
 
 
-def archive_previous(new_day: str, get=kv_get, put=kv_put) -> str | None:
+def archive_previous(new_day: str, get=d1_get, put=d1_put) -> str | None:
     """Freeze the day currently live under day:<date> before a different day replaces it."""
     current = get('config:current')
     if not isinstance(current, dict) or not current.get('date') or current['date'] == new_day:
@@ -193,17 +200,17 @@ def main() -> None:
     subprocess.run([sys.executable, str(ROOT / 'scripts' / 'schedule.py'), str(args.date)], check=True, cwd=ROOT)
     payload = ROOT / 'schedule' / f'{args.date}.json'
     config = json.loads(payload.read_text())
-    fill_prices(config, kv_get('config:current'), read_prices(source.with_suffix('.prices')))
+    fill_prices(config, d1_get('config:current'), read_prices(source.with_suffix('.prices')))
     payload.write_text(json.dumps(config, indent=2))
     validate_schedule(payload)
     archived = archive_previous(args.date.isoformat())
     if archived:
         print(f'Archived {archived}')
-    wrangler_kv('put', 'config:current', '--path', str(payload))
+    d1_put('config:current', config)
     lists = ROOT / 'data' / 'lists.json'
     if lists.is_file():
-        wrangler_kv('put', 'lists', '--path', str(lists))
-    print(f'Uploaded {args.date} slips to Workers KV')
+        d1_put('lists', json.loads(lists.read_text()))
+    print(f'Uploaded {args.date} slips to D1')
 
 
 if __name__ == '__main__':
