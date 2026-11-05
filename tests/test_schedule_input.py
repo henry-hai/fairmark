@@ -347,18 +347,38 @@ def test_push_archives_the_previous_day_once(tmp_path):
     assert store['day:2026-10-15']['snapshot'] is None
 
 
-def test_kv_read_failure_stops_the_upload(monkeypatch):
+def test_d1_read_failure_stops_the_upload(monkeypatch):
     import pytest
     push_path = script.with_name('push_slips.py')
-    push_spec = importlib.util.spec_from_file_location('push_slips_script_kv', push_path)
+    push_spec = importlib.util.spec_from_file_location('push_slips_script_d1', push_path)
     push = importlib.util.module_from_spec(push_spec)
     push_spec.loader.exec_module(push)
     result = lambda code, out='', err='': type('Result', (), {'returncode': code, 'stdout': out, 'stderr': err})()
-    monkeypatch.setattr(push, 'wrangler_kv', lambda *args, check=True: result(1, err='fetch failed - 404: Not Found'))
-    assert push.kv_get('days') is None
-    monkeypatch.setattr(push, 'wrangler_kv', lambda *args, check=True: result(1, err='network down'))
+    monkeypatch.setattr(push, 'wrangler_d1', lambda *args, check=True: result(0, out=json.dumps([{'results': []}])))
+    assert push.d1_get('days') is None
+    monkeypatch.setattr(push, 'wrangler_d1', lambda *args, check=True: result(0, out=json.dumps([{'results': [{'value': '["2026-10-16"]'}]}])))
+    assert push.d1_get('days') == ['2026-10-16']
+    monkeypatch.setattr(push, 'wrangler_d1', lambda *args, check=True: result(1, err='network down'))
     with pytest.raises(RuntimeError):
-        push.kv_get('config:current')
-    monkeypatch.setattr(push, 'wrangler_kv', lambda *args, check=True: result(0, out='not json'))
+        push.d1_get('config:current')
+    monkeypatch.setattr(push, 'wrangler_d1', lambda *args, check=True: result(0, out='not json'))
     with pytest.raises(RuntimeError):
-        push.kv_get('config:current')
+        push.d1_get('config:current')
+
+
+def test_d1_writes_long_values_in_pieces_that_rebuild_exactly(tmp_path):
+    import sqlite3
+    push_path = script.with_name('push_slips.py')
+    push_spec = importlib.util.spec_from_file_location('push_slips_script_pieces', push_path)
+    push = importlib.util.module_from_spec(push_spec)
+    push_spec.loader.exec_module(push)
+    schema = script.parents[1] / 'live' / 'poller' / 'schema.sql'
+    database = sqlite3.connect(':memory:')
+    database.executescript(schema.read_text())
+    text = json.dumps({'name': "D'Andre Swift", 'legs': ["O'Neal" * 40000]})
+    lines = push.d1_statements('config:current', text, 1)
+    assert len(lines) > 1 and all(len(line.encode()) < 100000 for line in lines)
+    database.executescript('\n'.join(lines))
+    assert database.execute("SELECT value FROM store WHERE key = 'config:current'").fetchone()[0] == text
+    database.executescript('\n'.join(push.d1_statements('config:current', '{}', 2)))
+    assert database.execute("SELECT value, updated_at FROM store").fetchall() == [('{}', 2)]
