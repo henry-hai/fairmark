@@ -76,10 +76,11 @@ async function renderPage(data, { now = 62000, storage = memoryStorage() } = {})
   const elements = new Map()
   const document = { details: [], addEventListener(type, listener) { if (type === 'toggle') this.toggleListener = listener }, querySelectorAll() { return this.details }, getElementById(id) {
     if (!elements.has(id)) {
-      const element = { textContent: '', className: '', addEventListener(type, listener) { this.listener = listener } }
+      const element = { textContent: '', className: '', writes: 0, addEventListener(type, listener) { this.listener = listener } }
       let html = ''
       Object.defineProperty(element, 'innerHTML', { get() { return html }, set(value) {
         html = value
+        element.writes++
         if (id === 'slips') document.details = [...value.matchAll(/<details data-expand-key="([^"]+)"( open)?>/g)].map(match => ({ dataset: { expandKey: match[1] }, open: Boolean(match[2]), matches: () => true }))
       } })
       elements.set(id, element)
@@ -98,6 +99,32 @@ async function renderPage(data, { now = 62000, storage = memoryStorage() } = {})
   await new Promise(resolve => setImmediate(resolve))
   return document
 }
+
+test('the one second redraw leaves the filters and live pills alone so the glow keeps running', async () => {
+  const data = { config: { ...config, slips: [{ ...config.slips[0], legs: ['Azure', 'Opponent'] }] }, markets: { [config.legs[0].ticker]: { ticker: config.legs[0].ticker, yes_bid_dollars: '0.4', yes_ask_dollars: '0.5', fetchedAt: 1000 } }, stale: false }
+  const document = await renderPage(data)
+  const ids = ['timeline-filters', 'slip-filters', 'day-chance-timeline', 'day-result-slips']
+  const before = ids.map(id => document.getElementById(id).writes)
+  assert.ok(before.every(count => count === 1))
+  const timelineWrites = document.getElementById('timeline').writes
+  document.rerender(data)
+  document.rerender(data)
+  assert.deepEqual(ids.map(id => document.getElementById(id).writes), before)
+  assert.equal(document.getElementById('timeline').writes, timelineWrites + 2)
+  document.clickFilter('timeline', 'won')
+  assert.equal(document.getElementById('timeline-filters').writes, 2)
+})
+
+test('a final leg shows no updated age, a leg still open does', async () => {
+  const legs = [{ name: 'Done', ticker: 'DONE', side: 'yes', start: '2026-10-17T17:00:00Z' }, { name: 'Open', ticker: 'OPEN', side: 'yes', start: '2026-10-17T17:00:00Z' }]
+  const data = { config: { date: config.date, legs, slips: [{ name: '1', stake: '10', payout: '20', legs: ['Done', 'Open'] }] }, markets: { DONE: { result: 'yes', fetchedAt: 1000 }, OPEN: { yes_bid_dollars: '0.4', yes_ask_dollars: '0.5', fetchedAt: 1000 } }, stale: false }
+  const timeline = (await renderPage(data, { now: 16000000 })).getElementById('timeline').innerHTML
+  const [done] = timeline.match(/<li[^>]*>(?:(?!<\/li>).)*Done(?:(?!<\/li>).)*<\/li>/)
+  const [open] = timeline.match(/<li[^>]*>(?:(?!<\/li>).)*Open \((?:(?!<\/li>).)*<\/li>/)
+  assert.doesNotMatch(done, /Updated|stale/)
+  assert.match(done, /riding\. Slips|riding\.<\/div>/)
+  assert.match(open, /Updated 15999 seconds ago \(stale\)\. Slips <a/)
+})
 
 test('page shows a separate age or missing label for each leg', async () => {
   const pageConfig = { ...config, slips: [{ ...config.slips[0], legs: ['Azure', 'Opponent'] }] }

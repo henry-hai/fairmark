@@ -229,9 +229,16 @@
     if (event.target.matches?.('details[data-expand-key]')) rememberExpansion()
   }, true)
 
+  // The page redraws every second for its timers. Replacing unchanged markup restarts the live glow, so only write what changed.
+  const setHtml = (element, html) => {
+    if (element.renderedHtml === html) return
+    element.innerHTML = html
+    element.renderedHtml = html
+  }
+
   function renderFilters() {
     for (const [group, elementId] of [['timeline', 'timeline-filters'], ['slips', 'slip-filters']]) {
-      document.getElementById(elementId).innerHTML = Object.entries(filters[group]).map(([status, active]) => `<button type="button" class="filter-chip" data-filter="${status}" aria-pressed="${active}">${status === 'cashed' ? 'Cashed Out' : status[0].toUpperCase() + status.slice(1)}</button>`).join('')
+      setHtml(document.getElementById(elementId), Object.entries(filters[group]).map(([status, active]) => `<button type="button" class="filter-chip" data-filter="${status}" aria-pressed="${active}">${status === 'cashed' ? 'Cashed Out' : status[0].toUpperCase() + status.slice(1)}</button>`).join(''))
     }
   }
 
@@ -435,10 +442,10 @@
     const dayResult = now === null ? 'Final Result Pending' : `Day ${now >= 0 ? 'Won' : 'Lost'}`
     // Timeline pill: whether the day's games are still going. Slips pill: the money, live or final.
     const liveDot = '<span class="status-dot live"></span>'
-    document.getElementById('day-chance-timeline').innerHTML = finished ? "Day's Games Settled" : `${liveDot}Live · Day in Progress`
+    setHtml(document.getElementById('day-chance-timeline'), finished ? "Day's Games Settled" : `${liveDot}Live · Day in Progress`)
     const resultPill = document.getElementById('day-result-slips')
     resultPill.className = `chance-pill ${finished && now !== null ? now < 0 ? 'negative' : now > 0 ? 'positive' : '' : ''}`
-    resultPill.innerHTML = finished ? escapeHtml(now === null ? dayResult : `${dayResult} · ${profitValue(now)}${futureNote}`) : `${liveDot}Live · Profit Now ${now === null ? 'pending' : escapeHtml(profitValue(now))}`
+    setHtml(resultPill, finished ? escapeHtml(now === null ? dayResult : `${dayResult} · ${profitValue(now)}${futureNote}`) : `${liveDot}Live · Profit Now ${now === null ? 'pending' : escapeHtml(profitValue(now))}`)
     const legsHit = slips.reduce((sum, slip) => sum + slip.legs.filter(name => states[name] === 'won').length, 0)
     const legCount = slips.reduce((sum, slip) => sum + slip.legs.length, 0)
     const totalRow = `<tr class="total-row"><th scope="row">Total</th><td data-label="Stake">${money(totals.staked)}</td><td data-label="Max payout">${money(totals.locked + totals.possible)}</td><td data-label="Profit">${now === null ? 'Not entered' : profitValue(now)}</td><td data-label="Legs hit">${legsHit}/${legCount}</td><td data-label="Status">${finished ? `${dayResult}${futureNote}` : 'Live'}</td></tr>`
@@ -492,12 +499,13 @@
       const probability = probabilities[leg.name]
       const percentage = scalars[leg.name] != null ? `${(scalars[leg.name] * 100).toFixed(1)}%` : nearly[leg.name] ? `${(probability * 100).toFixed(1)}%` : states[leg.name] === 'won' ? '100.0%' : states[leg.name] === 'lost' ? '0.0%' : probability !== null ? `${(probability * 100).toFixed(1)}%` : 'quote unavailable'
       const age = Number.isFinite(market.fetchedAt) ? Math.max(0, Math.floor((Date.now() - market.fetchedAt) / 1000)) : null
-      const ageLabel = age === null ? 'No market data yet' : `Updated ${age} seconds ago${age > 120 ? ' (stale)' : ''}`
+      // The poller stops checking a final leg, so its age would only climb and read as stale.
+      const ageLabel = market.result ? '' : age === null ? 'No market data yet' : `Updated ${age} seconds ago${age > 120 ? ' (stale)' : ''}`
       const aliveRefs = refs[leg.name].filter(ref => ref.status === 'alive').sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
       const riding = aliveRefs.reduce((total, ref) => total + ref.stake, 0)
       const links = aliveRefs.map(ref => `<a href="#slip-${encodeURIComponent(ref.name)}">#${escapeHtml(ref.name)}</a>`).join(' ')
       const displayStatus = nearly[leg.name] || state
-      return `<li class="timeline-item${state === 'won' || state === 'dead' ? ` ${state}-leg` : ''}"><div class="time">${escapeHtml(timelineStamp(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${sportTile(leg.ticker, leg.icon)}${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding. ${ageLabel}${links ? `. Slips ${links}` : ''}</div></div></li>`
+      return `<li class="timeline-item${state === 'won' || state === 'dead' ? ` ${state}-leg` : ''}"><div class="time">${escapeHtml(timelineStamp(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${sportTile(leg.ticker, leg.icon)}${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding.${ageLabel ? ` ${ageLabel}${links ? '.' : ''}` : ''}${links ? ` Slips ${links}` : ''}</div></div></li>`
     }).join('')
   }
 
