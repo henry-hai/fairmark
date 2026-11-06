@@ -115,6 +115,17 @@ test('the one second redraw leaves the filters and live pills alone so the glow 
   assert.equal(document.getElementById('timeline-filters').writes, 2)
 })
 
+test('a final leg shows no updated age, a leg still open does', async () => {
+  const legs = [{ name: 'Done', ticker: 'DONE', side: 'yes', start: '2026-10-17T17:00:00Z' }, { name: 'Open', ticker: 'OPEN', side: 'yes', start: '2026-10-17T17:00:00Z' }]
+  const data = { config: { date: config.date, legs, slips: [{ name: '1', stake: '10', payout: '20', legs: ['Done', 'Open'] }] }, markets: { DONE: { result: 'yes', fetchedAt: 1000 }, OPEN: { yes_bid_dollars: '0.4', yes_ask_dollars: '0.5', fetchedAt: 1000 } }, stale: false }
+  const timeline = (await renderPage(data, { now: 16000000 })).getElementById('timeline').innerHTML
+  const [done] = timeline.match(/<li[^>]*>(?:(?!<\/li>).)*Done(?:(?!<\/li>).)*<\/li>/)
+  const [open] = timeline.match(/<li[^>]*>(?:(?!<\/li>).)*Open \((?:(?!<\/li>).)*<\/li>/)
+  assert.doesNotMatch(done, /Updated|stale/)
+  assert.match(done, /riding\. Slips|riding\.<\/div>/)
+  assert.match(open, /Updated 15999 seconds ago \(stale\)\. Slips <a/)
+})
+
 test('page shows a separate age or missing label for each leg', async () => {
   const pageConfig = { ...config, slips: [{ ...config.slips[0], legs: ['Azure', 'Opponent'] }] }
   const data = { config: pageConfig, markets: { [config.legs[0].ticker]: { ticker: config.legs[0].ticker, fetchedAt: 1000 } }, stale: true }

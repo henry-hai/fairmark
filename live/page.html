@@ -499,12 +499,13 @@
       const probability = probabilities[leg.name]
       const percentage = scalars[leg.name] != null ? `${(scalars[leg.name] * 100).toFixed(1)}%` : nearly[leg.name] ? `${(probability * 100).toFixed(1)}%` : states[leg.name] === 'won' ? '100.0%' : states[leg.name] === 'lost' ? '0.0%' : probability !== null ? `${(probability * 100).toFixed(1)}%` : 'quote unavailable'
       const age = Number.isFinite(market.fetchedAt) ? Math.max(0, Math.floor((Date.now() - market.fetchedAt) / 1000)) : null
-      const ageLabel = age === null ? 'No market data yet' : `Updated ${age} seconds ago${age > 120 ? ' (stale)' : ''}`
+      // The poller stops checking a final leg, so its age would only climb and read as stale.
+      const ageLabel = market.result ? '' : age === null ? 'No market data yet' : `Updated ${age} seconds ago${age > 120 ? ' (stale)' : ''}`
       const aliveRefs = refs[leg.name].filter(ref => ref.status === 'alive').sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
       const riding = aliveRefs.reduce((total, ref) => total + ref.stake, 0)
       const links = aliveRefs.map(ref => `<a href="#slip-${encodeURIComponent(ref.name)}">#${escapeHtml(ref.name)}</a>`).join(' ')
       const displayStatus = nearly[leg.name] || state
-      return `<li class="timeline-item${state === 'won' || state === 'dead' ? ` ${state}-leg` : ''}"><div class="time">${escapeHtml(timelineStamp(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${sportTile(leg.ticker, leg.icon)}${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding. ${ageLabel}${links ? `. Slips ${links}` : ''}</div></div></li>`
+      return `<li class="timeline-item${state === 'won' || state === 'dead' ? ` ${state}-leg` : ''}"><div class="time">${escapeHtml(timelineStamp(startFor(leg)))}${leg.estimated && !legStatus[leg.name]?.start ? '<span class="estimate">estimated</span>' : ''}</div><div class="leg"><strong>${sportTile(leg.ticker, leg.icon)}${escapeHtml(leg.name)} (${percentage})</strong>${badge(displayStatus, nearly[leg.name] ? `${displayStatus} (nearly)` : displayStatus)}<div class="references">In ${aliveRefs.length} alive ${aliveRefs.length === 1 ? 'slip' : 'slips'}, ${ridingMoney(riding)} riding.${ageLabel ? ` ${ageLabel}${links ? '.' : ''}` : ''}${links ? ` Slips ${links}` : ''}</div></div></li>`
     }).join('')
   }
 
