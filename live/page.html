@@ -13,23 +13,23 @@
     main { width: min(100%, 1160px); margin: auto; padding: 20px 28px 48px; }
     @media (max-width: 600px) { main { padding-left: 16px; padding-right: 16px; } }
     h1 { font-size: clamp(1.55rem, 5vw, 2.2rem); line-height: 1.15; margin: 0 0 8px; }
-    h2 { font-size: 1.28rem; margin: 32px 0 12px; }
+    h2 { font-size: 1.45rem; letter-spacing: -.03em; margin: 0; }
     p { margin: 0; }
     .intro, .note { color: var(--muted); }
     .warning { color: var(--lost); font-weight: 700; }
-    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
-    .profit-tracker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+    .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+    .summary, .profit-tracker { display: contents; }
     .profit-tracker .stat { border-color: var(--accent); }
-    .profit-tracker .detail { display: block; margin-top: 3px; color: var(--muted); font-size: .8rem; }
+    .profit-tracker .detail { display: block; color: var(--muted); font-size: .78rem; }
     .profit-tracker .fee { grid-column: 1 / -1; color: var(--muted); font-size: .82rem; }
     .positive { color: var(--won); }
     .negative { color: var(--lost); }
     .profit-value.positive { text-shadow: var(--profit-glow); }
-    .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+    .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; min-width: 0; }
     .stat span { display: block; color: var(--muted); font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
-    .stat strong { display: block; font-size: clamp(1rem, 3vw, 1.38rem); margin-top: 5px; overflow-wrap: anywhere; }
+    .stat strong { display: block; font-size: clamp(1.38rem, 2.5vw, 2.14rem); letter-spacing: -.05em; font-variant-numeric: tabular-nums; margin: 6px 0 3px; overflow-wrap: anywhere; }
     .timeline { list-style: none; margin: 0; padding: 0; }
-    .filters { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 10px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 15px; }
     .filter-chip { border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--muted); padding: 5px 11px; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
     .filter-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--bg); }
     .filter-chip[data-filter] { display: inline-flex; align-items: center; gap: 7px; color: var(--text); }
@@ -44,8 +44,9 @@
     @keyframes neon { 0%, 100% { text-shadow: 0 0 6px color-mix(in srgb, var(--text) 75%, transparent), 0 0 14px color-mix(in srgb, var(--text) 35%, transparent); } 50% { text-shadow: 0 0 3px color-mix(in srgb, var(--text) 20%, transparent), 0 0 8px color-mix(in srgb, var(--text) 8%, transparent); } }
     @keyframes neon-dot { 0%, 100% { box-shadow: 0 0 8px 2px color-mix(in srgb, var(--text) 60%, transparent); opacity: 1; } 50% { box-shadow: 0 0 3px 1px color-mix(in srgb, var(--text) 15%, transparent); opacity: .7; } }
     @media (prefers-reduced-motion: reduce) { .filter-chip[data-filter], .filter-chip[data-filter]::before { animation: none; } }
-    .section-top { display: flex; justify-content: space-between; gap: 18px; align-items: baseline; }
-    .section-top p { color: var(--muted); font-size: .86rem; margin: 0; }
+    .section-top { display: flex; justify-content: space-between; gap: 18px; align-items: baseline; margin: 48px 0 17px; }
+    .section-top p { color: var(--muted); font-size: .86rem; margin: 0; max-width: 590px; }
+    #lists-section h2 { margin: 48px 0 17px; }
     @media (max-width: 860px) { .section-top { display: block; } .section-top p { margin-top: 6px; } }
     .filter-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 15px; }
     .filter-row .filters { margin: 0; }
@@ -73,17 +74,17 @@
     .chance-pill.positive { color: var(--won); border-color: var(--won); }
     .chance-pill.negative { color: var(--lost); border-color: var(--lost); }
     .filter-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-    .timeline-item { display: grid; grid-template-columns: 175px minmax(0, 1fr); gap: 10px; border-bottom: 1px solid var(--line); padding: 12px 2px; }
+    .timeline-item { display: grid; grid-template-columns: 175px minmax(0, 1fr); gap: 12px; border-bottom: 1px solid var(--line); padding: 12px 2px; }
     .timeline-item.won-leg, .timeline-item.dead-leg { opacity: .55; }
-    .time { font-weight: 700; font-size: .9rem; white-space: nowrap; }
+    .time { font-weight: 700; white-space: nowrap; }
     .estimate { display: block; font-weight: 400; font-size: .75rem; color: var(--muted); }
     .leg { min-width: 0; }
     .leg strong { overflow-wrap: anywhere; }
-    .references { color: var(--muted); font-size: .83rem; margin-top: 3px; }
+    .references { color: var(--muted); font-size: .8rem; margin-top: 4px; }
     .references a { color: var(--accent); margin-right: 6px; }
-    .badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-size: .75rem; font-weight: 700; text-transform: uppercase; vertical-align: 2px; }
+    .badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-size: .69rem; font-weight: 700; text-transform: uppercase; }
     .won { color: var(--won); } .lost, .dead { color: var(--lost); } .live { color: var(--live); } .upcoming { color: var(--upcoming); } .alive { color: var(--won); } .cashed { color: var(--cashed); }
-    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
     table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
     th, td { text-align: right; padding: 15px 17px; border-bottom: 1px solid var(--line); vertical-align: top; }
     th:first-child, td:first-child { text-align: left; }
@@ -96,9 +97,9 @@
     .dead-slip summary .badge { margin-left: 8px; }
     .dead-slip-content { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 10px 0 0 20px; font-size: .9rem; }
     .dead-slip-content span { overflow-wrap: anywhere; }
-    .slip-id { min-width: 235px; background: var(--panel); }
-    .leg-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; font-weight: 400; }
-    .leg-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 7px; border: 1px solid currentColor; border-radius: 8px; font-size: .75rem; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
+    .slip-id { min-width: 235px; background: var(--panel); font-size: .92rem; }
+    .leg-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; font-weight: 400; }
+    .leg-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 7px; border: 1px solid currentColor; border-radius: 8px; font-size: .75rem; white-space: normal; overflow-wrap: anywhere; }
     .leg-chip.won { background: color-mix(in srgb, var(--won) 12%, transparent); }
     .leg-chip.lost { background: color-mix(in srgb, var(--lost) 12%, transparent); }
     .leg-chip.live { background: color-mix(in srgb, var(--live) 12%, transparent); }
@@ -107,8 +108,8 @@
     .leg-chip.lost .leg-name { text-decoration: line-through; }
     .leg-chip.killer { font-weight: 700; }
     .leg-chip .leg-detail { white-space: nowrap; }
-    .cashout-detail { display: block; color: var(--cashed); font-size: .78rem; font-weight: 400; margin-top: 3px; }
-    td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .cashout-detail { display: block; color: var(--cashed); font-size: .76rem; font-weight: 400; margin-top: 4px; }
+    td { white-space: nowrap; font-variant-numeric: tabular-nums; font-size: .91rem; }
     td .badge { margin-left: 0; }
     .note { margin-top: 10px; font-size: .82rem; }
     .days { margin: 14px 0 0; }
@@ -120,11 +121,12 @@
     .track-record summary::-webkit-details-marker { display: none; }
     .track-record summary::before { content: ''; display: inline-block; width: .42em; height: .42em; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin: 0 10px .2em 2px; vertical-align: middle; transition: transform .2s; }
     .track-record details:not([open]) summary::before { transform: rotate(-45deg); }
-    .track-record ul { margin: 7px 0 0; padding-left: 20px; }
-    .track-record li { display: flex; gap: 12px; max-width: 230px; justify-content: space-between; }
+    .track-record ul { list-style: none; margin: 7px 0 0; padding: 0; max-width: 230px; }
+    .track-record li { display: flex; gap: 10px; justify-content: space-between; }
     .price-note { color: var(--muted); font-size: .86rem; margin: -4px 0 14px; }
     .pricing-table .outcome { min-width: 220px; white-space: normal; font-weight: 700; }
-    .pricing-table .outcome small, .pricing-table .source { display: block; color: var(--muted); font-size: .76rem; font-weight: 400; }
+    .pricing-table .outcome small { display: block; color: var(--muted); font-size: .76rem; font-weight: 400; margin-top: 3px; }
+    .pricing-table .source { display: block; color: var(--muted); font-size: .73rem; font-weight: 400; }
     .pricing-table .edge { color: var(--won); font-weight: 700; }
     .pricing-table .edge.negative { color: var(--lost); }
     .questions { margin-top: 54px; padding: 0 0 16px; }
@@ -138,36 +140,41 @@
     .questions details[open] summary::after { content: '−'; color: var(--text); }
     .questions p { color: var(--muted); font-size: .88rem; max-width: 70ch; padding: 0 26px 22px 0; }
     .questions code { color: var(--text); }
-    .slip-times { display: block; color: var(--muted); font-size: .78rem; font-weight: 400; margin-top: 4px; }
+    .slip-times { display: block; color: var(--muted); font-size: .76rem; font-weight: 400; margin-top: 4px; }
     .lists { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .lists .stat ul { margin: 6px 0 0; padding-left: 18px; }
     .lists .stat small { display: block; color: var(--muted); font-size: .78rem; }
     @media (max-width: 680px) { .lists { grid-template-columns: 1fr; } }
     @media (max-width: 680px) {
-      .timeline-item { grid-template-columns: 1fr; gap: 4px; }
-      .profit-tracker { grid-template-columns: 1fr 1fr; }
-      .summary { grid-template-columns: 1fr 1fr; }
-      .summary .stat:last-child { grid-column: 1 / -1; }
+      .timeline-item { grid-template-columns: 1fr; gap: 4px; padding: 12px; }
+      .time { font-size: .78rem; }
+      .section-top { margin-top: 38px; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .profit-tracker .fee { order: 1; }
+      .stat { padding: 13px; }
+      .stat strong { font-size: 1.4rem; }
       .table-wrap { border: 0; background: none; overflow: visible; }
       table, tbody, tr, th, td { display: block; }
       thead { display: none; }
-      tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+      tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 13px; margin-bottom: 9px; }
       tbody tr.dead-slip { display: block; }
       .dead-slip td { display: block; }
       tbody th, tbody td { border: 0; padding: 0; min-width: 0; white-space: normal; text-align: left; }
-      .slip-id { grid-column: 1 / -1; font-size: 1.05rem; }
-      td::before { content: attr(data-label); display: block; color: var(--muted); font-size: .75rem; }
+      .slip-id { grid-column: 1 / -1; }
+      td::before { content: attr(data-label); display: block; color: var(--muted); font-size: .67rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
       .pricing-table .outcome { min-width: 0; grid-column: 1 / -1; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
       .pricing-table .outcome::before { display: none; }
     }
-    @media (max-width: 380px) { .time { font-size: .82rem; } .stat { padding: 10px; } .badge { margin-left: 4px; } }
+    @media (max-width: 380px) { .badge { margin-left: 4px; } }
   </style>
 </head>
 <body>
 <main>
   <header><h1 id="title">Fairmark Live</h1><p class="intro" id="updated">Loading schedule</p><div class="filters days" id="days" role="group" aria-label="Days"></div><div class="track-record" id="track-record"></div></header>
-  <section class="profit-tracker" aria-label="Profit tracker" id="profit-tracker"></section>
-  <section class="summary" aria-label="Totals" id="summary"></section>
+  <div class="metrics">
+    <section class="profit-tracker" aria-label="Profit tracker" id="profit-tracker"></section>
+    <section class="summary" aria-label="Totals" id="summary"></section>
+  </div>
   <section aria-labelledby="pricing-heading"><details class="fold" data-expand-key="section:pricing" open><summary class="section-top"><h2 id="pricing-heading">Price vs. Sportsbook</h2><p>The sportsbook price keeps the vig, so it shows what a bettor actually pays there. Beating it is the edge. Fair is Pinnacle with the vig removed, a reference marked Estimate when Pinnacle has no line at that threshold.</p></summary><div class="table-wrap"><table class="pricing-table"><thead><tr id="pricing-head"><th scope="col">Market and Pacific event start</th><th scope="col">Kalshi ask</th><th scope="col">Sportsbook</th><th scope="col">Edge vs. Sportsbook</th><th scope="col">Fair, no vig</th></tr></thead><tbody id="pricing"></tbody></table></div></details></section>
   <section aria-labelledby="timeline-heading"><details class="fold" data-expand-key="section:timeline" open><summary class="section-top"><h2 id="timeline-heading">Timeline</h2><p>Live prices and final results from Kalshi.</p></summary><div class="filter-row"><div class="filters" id="timeline-filters" role="group" aria-label="Timeline status filters"></div><span class="chance-pill" id="day-chance-timeline">Day in Progress</span></div><ol class="timeline" id="timeline"></ol></details></section>
   <section aria-labelledby="slips-heading"><details class="fold" data-expand-key="section:slips" open><summary class="section-top"><h2 id="slips-heading">Slips</h2><p>Profit is potential while a slip is alive.</p></summary><div class="filter-row"><div class="filters" id="slip-filters" role="group" aria-label="Slip status filters"></div><span class="chance-pill" id="day-result-slips">Live · Profit Now</span></div><div class="table-wrap"><table><thead><tr><th scope="col">Slip and legs</th><th scope="col">Stake</th><th scope="col">Max payout</th><th scope="col">Profit</th><th scope="col">Legs hit</th><th scope="col">Status</th></tr></thead><tbody id="slips"></tbody></table></div><p class="note">Profit is potential for alive slips and settled for won, dead or cashed out slips. Payout totals include only slips with a confirmed payout. Percentages use the midpoint of the Kalshi bid and ask.</p></details></section>
