@@ -27,3 +27,4 @@ schedule/
 .wrangler/
 live/pages/public/_worker.js
 .DS_Store
+HANDOFF-BETS.md
