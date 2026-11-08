@@ -702,3 +702,44 @@ test('lists come from their own key and fully settled days are never stale', asy
   assert.equal(document.getElementById('updated').textContent, 'Pacific time. Every leg has settled.')
   assert.match(document.getElementById('lists').innerHTML, /Ban list.*?Team B/)
 })
+
+test('the day strip shows one row oldest first and the arrows page through earlier days', async () => {
+  const dates = Array.from({ length: 16 }, (_, index) => `2026-10-${index + 10}`)
+  const today = dates[15]
+  const document = await renderPage({
+    config: { date: today, legs: [{ name: 'A', ticker: 'T', side: 'yes', start: `${today}T20:00:00Z` }], slips: [{ name: '1', stake: '10', payout: '20', legs: ['A'] }] },
+    markets: { T: {} }, stale: false, archived: false, days: dates
+  }, { now: Date.parse('2026-10-25T21:00:00Z') })
+  const days = document.getElementById('days')
+  const shown = () => [...days.innerHTML.matchAll(/data-day="2026-10-(\d+)"/g)].map(match => match[1])
+  assert.deepEqual(shown(), ['19', '20', '21', '22', '23', '24', '25'])
+  assert.match(days.innerHTML, /data-day="2026-10-25" aria-pressed="true"/)
+  assert.match(days.innerHTML, /data-move="1" aria-label="Later days" disabled/)
+  days.listener({ target: { dataset: { move: '-1' } } })
+  assert.deepEqual(shown(), ['12', '13', '14', '15', '16', '17', '18'])
+  days.listener({ target: { dataset: { move: '-1' } } })
+  assert.deepEqual(shown(), ['10', '11', '12', '13', '14', '15', '16'])
+  assert.match(days.innerHTML, /data-move="-1" aria-label="Earlier days" disabled/)
+  days.listener({ target: { dataset: { move: '1' } } })
+  days.listener({ target: { dataset: { move: '1' } } })
+  assert.deepEqual(shown(), ['19', '20', '21', '22', '23', '24', '25'])
+  assert.doesNotMatch(days.innerHTML, /data-month/)
+  assert.equal(document.getElementById('status-word').textContent, 'Live')
+})
+
+test('month tabs show one month of days at a time and open on the selected day\'s month', async () => {
+  const dates = ['2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02', '2026-11-04', '2026-11-05']
+  const today = '2026-11-05'
+  const document = await renderPage({
+    config: { date: today, legs: [{ name: 'A', ticker: 'T', side: 'yes', start: `${today}T20:00:00Z` }], slips: [{ name: '1', stake: '10', payout: '20', legs: ['A'] }] },
+    markets: { T: {} }, stale: false, archived: false, days: dates
+  }, { now: Date.parse('2026-11-05T21:00:00Z') })
+  const days = document.getElementById('days')
+  const shown = () => [...days.innerHTML.matchAll(/data-day="([\d-]+)"/g)].map(match => match[1])
+  assert.match(days.innerHTML, /data-month="2026-10" aria-pressed="false">Oct 2026.*?data-month="2026-11" aria-pressed="true">Nov 2026/)
+  assert.deepEqual(shown(), ['2026-11-01', '2026-11-02', '2026-11-04', '2026-11-05'])
+  assert.doesNotMatch(days.innerHTML, /data-move/)
+  days.listener({ target: { dataset: { month: '2026-10' } } })
+  assert.deepEqual(shown(), ['2026-10-29', '2026-10-30', '2026-10-31'])
+  assert.match(days.innerHTML, /data-month="2026-10" aria-pressed="true"/)
+})

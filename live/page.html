@@ -132,6 +132,15 @@
     td .badge { margin-left: 0; }
     .note { margin-top: 10px; font-size: .82rem; }
     .days { margin: 0 0 20px; }
+    .days { display: block; }
+    .month-tabs { display: flex; gap: 18px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+    .month-tab { border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); font: inherit; font-size: .86rem; padding: 4px 0 7px; cursor: pointer; }
+    .month-tab[aria-pressed="true"] { color: var(--text); font-weight: 700; border-bottom-color: var(--text); }
+    .day-strip { display: flex; gap: 8px; align-items: center; }
+    .filter-chip[data-day], .filter-chip[data-move] { font-weight: 400; white-space: nowrap; flex: none; }
+    .filter-chip[data-day][aria-pressed="true"] { color: var(--text); font-weight: 700; border-color: var(--text); background: var(--panel2); }
+    .filter-chip[data-move] { width: 32px; height: 32px; padding: 0; font-size: 1rem; }
+    .filter-chip:disabled { opacity: .35; cursor: default; }
     .track-record { margin-top: 10px; color: var(--muted); font-size: .83rem; }
     .track-record strong { color: var(--text); font-size: .95rem; }
     .track-record details { margin-top: 4px; }
@@ -230,9 +239,15 @@
   const pct = value => `${(value * 100).toFixed(1)}%`
   const priceCents = value => `${(value * 100).toFixed(1)}¢`
   const dayLabel = value => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(value + 'T12:00:00Z'))
+  const dayLabelShort = value => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }).format(new Date(value + 'T12:00:00Z'))
   const settledAt = market => market?.result ? Date.parse(market.settlement_ts || market.close_time) : NaN
   const LISTS = [['ban', 'Ban list', 'Never a Yes leg'], ['doghouse', 'The Doghouse', 'Proceed with caution'], ['hateWatch', 'Hate Watch', 'Bet against']]
   let selectedDay = null
+  let dayStripEnd = null
+  let dayMonth = null
+  let stripLength = 0
+  const monthLabel = key => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'short', year: 'numeric' }).format(new Date(key + '-15T12:00:00Z'))
+  const daysPerStrip = () => globalThis.matchMedia?.('(max-width: 860px)').matches ? 4 : 7
   const themeButton = document.getElementById('theme-toggle')
   let savedTheme
   try { savedTheme = localStorage.getItem('fairmark-theme') } catch {}
@@ -339,6 +354,20 @@
   }
 
   document.getElementById('days').addEventListener('click', event => {
+    const { month } = event.target.dataset || {}
+    if (month && lastData) {
+      dayMonth = month
+      dayStripEnd = null
+      render(lastData)
+      return
+    }
+    const move = Number(event.target.dataset?.move)
+    if (move && lastData) {
+      const end = Math.max(Math.min((dayStripEnd ?? stripLength) + move * daysPerStrip(), stripLength), daysPerStrip())
+      dayStripEnd = end === stripLength ? null : end
+      render(lastData)
+      return
+    }
     const day = event.target.dataset?.day
     if (!day || day === selectedDay) return
     selectedDay = day
@@ -393,6 +422,25 @@
     return missingPayout ? null : net
   }
 
+  // Month tabs pick the month, then one row of that month's days, oldest on the left. The
+  // arrows page through the month a strip at a time. With dayMonth and dayStripEnd unset the
+  // picker follows the selected day's month and its newest days.
+  function renderDays(days, current) {
+    if (days.length <= 1) return setHtml(document.getElementById('days'), '')
+    const months = [...new Set(days.map(date => date.slice(0, 7)))]
+    const month = months.includes(dayMonth) ? dayMonth : current.slice(0, 7)
+    const monthDays = days.filter(date => date.startsWith(month))
+    stripLength = monthDays.length
+    const perStrip = daysPerStrip()
+    const end = Math.max(Math.min(dayStripEnd ?? monthDays.length, monthDays.length), perStrip)
+    const start = Math.max(end - perStrip, 0)
+    const label = globalThis.matchMedia?.('(max-width: 600px)').matches ? dayLabelShort : dayLabel
+    const tabs = months.length > 1 ? `<div class="month-tabs">${months.map(key => `<button type="button" class="month-tab" data-month="${key}" aria-pressed="${key === month}">${escapeHtml(monthLabel(key))}</button>`).join('')}</div>` : ''
+    const chips = monthDays.slice(start, end).map(date => `<button type="button" class="filter-chip" data-day="${escapeHtml(date)}" aria-pressed="${date === current}">${escapeHtml(label(date))}</button>`).join('')
+    const arrow = (move, text, name, off) => `<button type="button" class="filter-chip" data-move="${move}" aria-label="${name}"${off ? ' disabled' : ''}>${text}</button>`
+    setHtml(document.getElementById('days'), `${tabs}<div class="day-strip">${monthDays.length > perStrip ? arrow(-1, '‹', 'Earlier days', start === 0) + chips + arrow(1, '›', 'Later days', end >= monthDays.length) : chips}</div>`)
+  }
+
   function renderTrackRecord(data) {
     const days = Array.isArray(data.history) ? data.history : [{ date: data.config.date, ...data }]
     const nets = days.map(day => ({ date: day.date, net: dailyNet(day) }))
@@ -420,8 +468,7 @@
     const final = data.archived || settled
     document.getElementById('status-word').textContent = final ? 'Final' : 'Live'
     document.getElementById('status-dot').className = `status-dot ${final ? '' : 'live'}`
-    const days = Array.isArray(data.days) ? data.days : []
-    document.getElementById('days').innerHTML = days.length > 1 ? days.map(day => `<button type="button" class="filter-chip" data-day="${escapeHtml(day)}" aria-pressed="${day === config.date}">${escapeHtml(dayLabel(day))}</button>`).join('') : ''
+    renderDays(Array.isArray(data.days) ? data.days : [], config.date)
     renderTrackRecord(data)
     const lists = data.lists && Object.keys(data.lists).length ? data.lists : config.lists || {}
     const shown = LISTS.filter(([key]) => Array.isArray(lists[key]) && lists[key].length)
