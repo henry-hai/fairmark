@@ -5,14 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fairmark Live</title>
   <style>
-    :root { color-scheme: light dark; --bg: #f5f6fa; --panel: #fff; --panel2: var(--bg); --text: #182130; --muted: #5b6574; --line: #dce1e8; --accent: #165ab8; --won: #157249; --lost: #b23543; --live: #9b5a0a; --upcoming: #566276; --cashed: #9b5a0a; --gold: #94712f; --profit-glow: 0 0 8px rgb(21 114 73 / 30%); }
-    @media (prefers-color-scheme: dark) { :root { --bg: #091321; --panel: #112136; --panel2: #172a43; --text: #f3f7fa; --muted: #a8bac9; --line: #29405a; --accent: #76dec8; --won: #76dec8; --lost: #ff9f9f; --live: #f4cc7b; --upcoming: #bcc8d9; --cashed: #f4cc7b; --gold: #d4b675; --profit-glow: 0 0 8px rgb(95 245 200 / 30%); } }
+    :root { color-scheme: light; --bg: #f5f6fa; --panel: #fff; --panel2: var(--bg); --text: #182130; --muted: #5b6574; --line: #dce1e8; --accent: #165ab8; --won: #157249; --lost: #b23543; --live: #9b5a0a; --upcoming: #566276; --cashed: #9b5a0a; --gold: #94712f; --indicator-positive: var(--won); --indicator-negative: var(--lost); --indicator-glow-positive: none; --indicator-glow-negative: none; --profit-glow: 0 0 8px rgb(21 114 73 / 30%); }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme]) { color-scheme: dark; --bg: #091321; --panel: #112136; --panel2: #172a43; --text: #f3f7fa; --muted: #a8bac9; --line: #29405a; --accent: #76dec8; --won: #76dec8; --lost: #ff9f9f; --live: #f4cc7b; --upcoming: #bcc8d9; --cashed: #f4cc7b; --gold: #d4b675; --indicator-positive: #5ff5c8; --indicator-negative: #ff7b8a; --indicator-glow-positive: 0 0 8px rgb(95 245 200 / 30%); --indicator-glow-negative: 0 0 8px rgb(255 123 138 / 30%); --profit-glow: var(--indicator-glow-positive); } }
+    :root[data-theme="dark"] { color-scheme: dark; --bg: #091321; --panel: #112136; --panel2: #172a43; --text: #f3f7fa; --muted: #a8bac9; --line: #29405a; --accent: #76dec8; --won: #76dec8; --lost: #ff9f9f; --live: #f4cc7b; --upcoming: #bcc8d9; --cashed: #f4cc7b; --gold: #d4b675; --indicator-positive: #5ff5c8; --indicator-negative: #ff7b8a; --indicator-glow-positive: 0 0 8px rgb(95 245 200 / 30%); --indicator-glow-negative: 0 0 8px rgb(255 123 138 / 30%); --profit-glow: var(--indicator-glow-positive); }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    main { width: min(100%, 1160px); margin: auto; padding: 20px 28px 48px; }
-    @media (max-width: 600px) { main { padding-left: 16px; padding-right: 16px; } }
-    h1 { font-size: clamp(1.55rem, 5vw, 2.2rem); line-height: 1.15; margin: 0 0 8px; }
+    main { width: min(100%, 1160px); margin: auto; padding: 0 28px 80px; }
+    header { display: flex; justify-content: space-between; align-items: center; min-height: 78px; border-bottom: 1px solid var(--line); }
+    .brand { font-family: Georgia, serif; font-size: 2.175rem; font-weight: 600; letter-spacing: -.055em; }
+    .header-actions { display: flex; align-items: center; gap: 24px; }
+    .theme-toggle { border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 99px; padding: 6px 12px; font: inherit; font-size: .78rem; cursor: pointer; }
+    .theme-toggle:hover { color: var(--text); border-color: var(--muted); }
+    .hero { padding: 70px 0 14px; }
+    .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .16em; font-size: .85rem; font-weight: 700; }
+    h1 { font-size: clamp(2.2rem, 5vw, 3.85rem); line-height: 1.1; letter-spacing: -.05em; max-width: 770px; margin: 17px 0 20px; font-weight: 600; }
+    .lede { max-width: 750px; color: var(--muted); font-size: 1.05rem; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 44px; color: var(--muted); font-size: .82rem; }
+    .meta .status-dot { display: inline-block; margin-right: 9px; vertical-align: middle; }
+    .status-word { color: var(--text); font-weight: 600; }
+    footer { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 42px; color: var(--muted); font-size: .78rem; }
+    @media (max-width: 600px) { main { padding: 0 16px 48px; } header { min-height: 64px; } .header-actions { gap: 12px; } .hero { padding-top: 42px; } }
     h2 { font-size: 1.45rem; letter-spacing: -.03em; margin: 0; }
     p { margin: 0; }
     .intro, .note { color: var(--muted); }
@@ -112,7 +125,7 @@
     td { white-space: nowrap; font-variant-numeric: tabular-nums; font-size: .91rem; }
     td .badge { margin-left: 0; }
     .note { margin-top: 10px; font-size: .82rem; }
-    .days { margin: 14px 0 0; }
+    .days { margin: 0 0 20px; }
     .track-record { margin-top: 10px; color: var(--muted); font-size: .83rem; }
     .track-record strong { color: var(--text); font-size: .95rem; }
     .track-record details { margin-top: 4px; }
@@ -170,7 +183,15 @@
 </head>
 <body>
 <main>
-  <header><h1 id="title">Fairmark Live</h1><p class="intro" id="updated">Loading schedule</p><div class="filters days" id="days" role="group" aria-label="Days"></div><div class="track-record" id="track-record"></div></header>
+  <header><div class="brand">Fairmark</div><div class="header-actions"><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light and dark mode">Theme</button></div></header>
+  <section class="hero">
+    <div class="eyebrow">Pricing and risk engine</div>
+    <h1>Find the gap between market price and fair value.</h1>
+    <p class="lede">Kalshi prices compared with documented fair references. Fees and shared exposure flow into a portfolio risk model.</p>
+    <div class="meta"><span><span class="status-dot" id="status-dot"></span><strong class="status-word" id="status-word">Loading</strong> · <span id="title"></span> · <span class="intro" id="updated">Loading schedule</span></span></div>
+  </section>
+  <div class="filters days" id="days" role="group" aria-label="Days"></div>
+  <div class="track-record" id="track-record"></div>
   <div class="metrics">
     <section class="profit-tracker" aria-label="Profit tracker" id="profit-tracker"></section>
     <section class="summary" aria-label="Totals" id="summary"></section>
@@ -187,6 +208,7 @@
     <details data-expand-key="question:4"><summary>Where can I search markets and combos?</summary><p>Market and combo search runs from the command line: <code>uv run fairmark slate slate.txt --trials 100000</code>. It prints matched markets, fair prices, estimated combo payouts, and day risk.</p></details>
   </section>
   <section aria-labelledby="lists-heading" id="lists-section" hidden><h2 id="lists-heading">Lists</h2><div class="lists" id="lists"></div></section>
+  <footer>No orders are placed. Not financial advice.</footer>
 </main>
 <script>
   const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character])
@@ -205,6 +227,19 @@
   const settledAt = market => market?.result ? Date.parse(market.settlement_ts || market.close_time) : NaN
   const LISTS = [['ban', 'Ban list', 'Never a Yes leg'], ['doghouse', 'The Doghouse', 'Proceed with caution'], ['hateWatch', 'Hate Watch', 'Bet against']]
   let selectedDay = null
+  const themeButton = document.getElementById('theme-toggle')
+  let savedTheme
+  try { savedTheme = localStorage.getItem('fairmark-theme') } catch {}
+  if (savedTheme === 'light' || savedTheme === 'dark') document.documentElement?.setAttribute('data-theme', savedTheme)
+  const currentTheme = () => document.documentElement?.getAttribute('data-theme') || (globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  const updateThemeButton = () => { themeButton.textContent = currentTheme() === 'dark' ? 'Light mode' : 'Dark mode' }
+  updateThemeButton()
+  themeButton.addEventListener('click', () => {
+    const next = currentTheme() === 'dark' ? 'light' : 'dark'
+    document.documentElement.setAttribute('data-theme', next)
+    try { localStorage.setItem('fairmark-theme', next) } catch {}
+    updateThemeButton()
+  })
   const badge = (status, label = status) => `<span class="badge ${status}">${label}</span>`
   const localData = /* LOCAL_DATA */ null
   const filterDefaults = { timeline: { live: true, upcoming: true, won: true, dead: true }, slips: { alive: true, won: true, dead: true, cashed: true } }
@@ -376,6 +411,9 @@
     const pausedSince = newestAge !== null && newestAge > 120 ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' }).format(new Date(Date.now() - newestAge * 1000)) : null
     updated.textContent = data.archived ? 'Pacific time. Archived day, final results.' : settled ? 'Pacific time. Every leg has settled.' : pausedSince ? `Prices paused since ${pausedSince} PT, ${Math.round(newestAge / 60)} minutes ago. The cloud poller may be down.` : `Pacific time. ${oldestAge === null ? 'Waiting for market data' : needsRefresh ? 'Some market data is missing or stale' : 'Market data is current'}.`
     updated.className = needsRefresh && !data.archived ? 'intro warning' : 'intro'
+    const final = data.archived || settled
+    document.getElementById('status-word').textContent = final ? 'Final' : 'Live'
+    document.getElementById('status-dot').className = `status-dot ${final ? '' : 'live'}`
     const days = Array.isArray(data.days) ? data.days : []
     document.getElementById('days').innerHTML = days.length > 1 ? days.map(day => `<button type="button" class="filter-chip" data-day="${escapeHtml(day)}" aria-pressed="${day === config.date}">${escapeHtml(dayLabel(day))}</button>`).join('') : ''
     renderTrackRecord(data)
