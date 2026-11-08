@@ -37,7 +37,13 @@
     .profit-tracker .fee { grid-column: 1 / -1; color: var(--muted); font-size: .82rem; }
     .positive { color: var(--won); }
     .negative { color: var(--lost); }
-    .profit-value.positive { text-shadow: var(--profit-glow); }
+    .profit-value.positive { color: var(--indicator-positive); text-shadow: var(--profit-glow); }
+    .profit-value.negative { text-shadow: var(--indicator-glow-negative); }
+    .stat .positive { color: var(--indicator-positive); text-shadow: var(--indicator-glow-positive); }
+    .stat .negative { color: var(--indicator-negative); text-shadow: var(--indicator-glow-negative); }
+    .track-record .positive { color: var(--indicator-positive); }
+    .track-record .negative { color: var(--indicator-negative); }
+    .badge.alive { color: var(--indicator-positive); text-shadow: var(--indicator-glow-positive); }
     .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; min-width: 0; }
     .stat span { display: block; color: var(--muted); font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
     .stat strong { display: block; font-size: clamp(1.38rem, 2.5vw, 2.14rem); letter-spacing: -.05em; font-variant-numeric: tabular-nums; margin: 6px 0 3px; overflow-wrap: anywhere; }
@@ -140,8 +146,8 @@
     .pricing-table .outcome { min-width: 220px; white-space: normal; font-weight: 700; }
     .pricing-table .outcome small { display: block; color: var(--muted); font-size: .76rem; font-weight: 400; margin-top: 3px; }
     .pricing-table .source { display: block; color: var(--muted); font-size: .73rem; font-weight: 400; }
-    .pricing-table .edge { color: var(--won); font-weight: 700; }
-    .pricing-table .edge.negative { color: var(--lost); }
+    .pricing-table .edge { color: var(--indicator-positive); font-weight: 700; text-shadow: var(--indicator-glow-positive); }
+    .pricing-table .edge.negative { color: var(--indicator-negative); text-shadow: var(--indicator-glow-negative); }
     .questions { margin-top: 54px; padding: 0 0 16px; }
     .questions h2 { font: 400 1.8rem Georgia, serif; letter-spacing: -.025em; margin: 0 0 18px; }
     .questions details { border-top: 1px solid var(--line); padding: 0 4px; }
@@ -520,7 +526,7 @@
       const fraction = cashout ? Number(cashout.remainingFraction) : 1
       const remainingPayout = fraction === 0 ? 0 : payout === null ? null : Math.round(payout * fraction)
       const profit = status === 'dead' || status === 'cashed' ? received - stake : remainingPayout === null ? null : received + remainingPayout - stake
-      const profitLabel = profit === null ? 'Not entered' : status === 'alive' ? `<span class="profit-value ${profit < 0 ? 'negative' : 'positive'}">Up to ${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}</span>` : `${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}`
+      const profitLabel = profit === null ? 'Not entered' : status === 'alive' ? `<span class="profit-value ${profit < 0 ? 'negative' : 'positive'}">Up to ${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}</span>` : `<span class="profit-value ${profit < 0 ? 'negative' : profit > 0 ? 'positive' : ''}">${profit >= 0 ? '+' : '−'}${money(Math.abs(profit))}</span>`
       const hit = slip.legs.filter(name => states[name] === 'won').length
       const legTimes = slip.legs.map(name => settledAt(markets[legsByName[name]?.ticker]))
       const finished = status === 'won' && legTimes.every(Number.isFinite) ? Math.max(...legTimes) :

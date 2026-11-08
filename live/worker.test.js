@@ -394,7 +394,7 @@ test('every slip shows state chips and dead slips identify losing legs', async (
   assert.match(rows, /id="slip-alive".*?leg-chip won.*?Won.*?✓.*?leg-chip won.*?Near won.*?✓.*?leg-chip live.*?Live.*?55\.0%.*?leg-chip upcoming.*?Upcoming.*?3:00 PM.*?Legs hit">2\/4/)
   assert.match(rows, /id="slip-won".*?Legs hit">2\/2.*?class="badge won"/)
   assert.match(rows, /id="slip-dead".*?<details.*?leg-chip lost killer.*?Lost.*?Killed slip.*?leg-chip lost killer.*?Near lost.*?Killed slip.*?Legs hit 1\/4/)
-  assert.match(rows, /id="slip-cashed".*?leg-chip lost.*?Lost.*?Profit">−\$17\.50.*?class="badge cashed">Cashed Out/)
+  assert.match(rows, /id="slip-cashed".*?leg-chip lost.*?Lost.*?Profit"><span class="profit-value negative">−\$17\.50.*?class="badge cashed">Cashed Out/)
 })
 
 test('a scalar settlement counts as settled and scales the slip payout', async () => {
@@ -433,7 +433,7 @@ test('full and partial cash-outs reduce exposure and count received money', asyn
   assert.match(document.getElementById('summary').innerHTML, /Payout locked in<\/span><strong>\$42\.50/)
   assert.match(document.getElementById('summary').innerHTML, /Max still possible<\/span><strong>\$120\.00/)
   assert.match(document.getElementById('timeline').innerHTML, /Open \(quote unavailable\).*?In 2 alive slips, \$60 riding/)
-  assert.match(document.getElementById('slips').innerHTML, /id="slip-sample".*?Profit">−\$9\.50.*?badge cashed/)
+  assert.match(document.getElementById('slips').innerHTML, /id="slip-sample".*?Profit"><span class="profit-value negative">−\$9\.50.*?badge cashed/)
   document.rerender({ config: { date: config.date, legs, slips, cashouts }, markets: { L: { result: 'no' }, O: { result: 'yes' } }, stale: false })
   tracker = document.getElementById('profit-tracker').innerHTML
   assert.match(tracker, /Profit now<\/span><strong class="positive">\+\$40\.50/)
